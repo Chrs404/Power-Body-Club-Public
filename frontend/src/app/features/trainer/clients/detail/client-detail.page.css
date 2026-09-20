@@ -1,0 +1,46 @@
+ion-list {
+  background: transparent;
+}
+
+.client-head h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.font-monospace {
+  font-family: monospace;
+}
+
+/*
+ * Riquadro delle operazioni irreversibili, separato visivamente dal resto:
+ * un pulsante di eliminazione in mezzo agli altri viene premuto per sbaglio.
+ */
+.zona-pericolo {
+  border: 1px solid color-mix(in srgb, var(--ion-color-danger) 35%, transparent);
+  border-radius: 10px;
+  padding: 0.9rem 1rem 1rem;
+  background: color-mix(in srgb, var(--ion-color-danger) 5%, transparent);
+}
+
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  .zona-pericolo {
+    border-color: #d9a89f;
+    background: #fdf4f2;
+  }
+}
+
+.zona-titolo {
+  font-family: var(--pbc-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ion-color-danger);
+  margin: 0 0 0.3rem;
+}
+
+.zona-testo {
+  font-size: 0.82rem;
+  color: var(--ion-color-medium);
+  margin: 0 0 0.75rem;
+}

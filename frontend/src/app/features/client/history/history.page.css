@@ -1,0 +1,15 @@
+.empty-icon {
+  font-size: 3rem;
+  color: var(--ion-color-medium);
+}
+
+.workout-notes {
+  font-size: 0.9rem;
+  background: var(--ion-color-light);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+ion-list {
+  background: transparent;
+}

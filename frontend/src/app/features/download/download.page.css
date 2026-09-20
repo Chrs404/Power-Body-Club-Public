@@ -1,0 +1,78 @@
+.pagina {
+  max-width: 26rem;
+  margin-inline: auto;
+  padding: 2rem 0.5rem;
+  text-align: center;
+}
+
+.logo {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+}
+
+.occhiello {
+  font-family: var(--pbc-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.75rem;
+  color: var(--ion-color-secondary);
+  margin: 0 0 0.3rem;
+}
+
+h1 {
+  font-family: var(--pbc-font-display);
+  font-size: 1.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0 0 0.5rem;
+}
+
+.sottotitolo {
+  color: var(--ion-color-medium);
+  font-size: 0.92rem;
+  margin: 0 0 1.75rem;
+}
+
+/*
+ * Il download e' un collegamento e non un pulsante Ionic: serve
+ * l'attributo download, e un ion-button non lo espone.
+ */
+.scelta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 1.1rem 1.5rem;
+  border-radius: 12px;
+  text-decoration: none;
+  background: var(--ion-color-primary);
+  color: #fff;
+  margin-bottom: 0.75rem;
+}
+
+.scelta ion-icon {
+  font-size: 1.8rem;
+  margin-bottom: 0.15rem;
+}
+
+.scelta .titolo {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.scelta .nota {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.alternativa {
+  margin: 0;
+}
+
+.chiusura {
+  margin-top: 1.75rem;
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+}

@@ -1,0 +1,56 @@
+@if (haDatiSufficienti()) {
+  <div class="grafico">
+    <div class="intestazione">
+      <div>
+        <span class="etichetta">Andamento</span>
+        @if (variazione(); as v) {
+          <span class="variazione" [class.su]="v > 0" [class.giu]="v < 0">
+            {{ v > 0 ? '+' : '' }}{{ v | number: '1.0-2' }} kg
+          </span>
+        }
+      </div>
+      <span class="intervallo">
+        {{ minimo() | number: '1.0-2' }} – {{ massimo() | number: '1.0-2' }} kg
+      </span>
+    </div>
+
+    <svg [attr.viewBox]="viewBox()" preserveAspectRatio="none" class="tela">
+      <defs>
+        <linearGradient id="sfumaturaPeso" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--ion-color-primary)" stop-opacity="0.28" />
+          <stop offset="100%" stop-color="var(--ion-color-primary)" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+
+      <path [attr.d]="area()" fill="url(#sfumaturaPeso)" />
+      <path [attr.d]="linea()" class="tracciato" />
+
+      @for (p of disegnati(); track p.x) {
+        <circle
+          [attr.cx]="p.x" [attr.cy]="p.y" r="4"
+          class="punto"
+          [class.attivo]="selezionato()?.x === p.x"
+          (click)="seleziona(p)"
+        ></circle>
+      }
+    </svg>
+
+    <div class="piede">
+      @if (selezionato(); as s) {
+        <span class="dettaglio">
+          {{ formattaData(s.data) }} · <strong>{{ s.peso | number: '1.0-2' }} kg</strong>
+        </span>
+      } @else {
+        <span class="estremo">{{ formattaData(disegnati()[0].data) }}</span>
+        <span class="suggerimento">tocca un punto</span>
+        <span class="estremo">
+          {{ formattaData(disegnati()[disegnati().length - 1].data) }}
+        </span>
+      }
+    </div>
+  </div>
+} @else {
+  <p class="pochi-dati">
+    Serve almeno una seconda registrazione per vedere l'andamento.
+  </p>
+}

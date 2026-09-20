@@ -1,0 +1,25 @@
+node_modules/
+dist/
+.angular/
+www/
+
+# Capacitor: build Android, rigenerabili
+frontend/android/build/
+frontend/android/app/build/
+frontend/android/.gradle/
+frontend/android/local.properties
+frontend/android/app/src/main/assets/public/
+frontend/android/capacitor-cordova-android-plugins/
+
+.env
+.env.local
+.env.*.local
+
+*.log
+npm-debug.log*
+
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

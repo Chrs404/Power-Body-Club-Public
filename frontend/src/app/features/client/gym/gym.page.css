@@ -1,0 +1,35 @@
+.empty-icon {
+  font-size: 3rem;
+  color: var(--ion-color-medium);
+}
+
+.news-content {
+  font-size: 0.9rem;
+  white-space: pre-line;
+}
+
+.news-image {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.slots {
+  text-align: right;
+}
+
+.slot {
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+ion-item.today {
+  --background: var(--ion-color-light);
+}
+
+ion-item.today h2 {
+  font-weight: 700;
+}
+
+ion-list {
+  background: transparent;
+}

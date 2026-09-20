@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Crema del logo: fa da sfondo all'icona adattiva -->
+    <color name="ic_launcher_background">#E9D4B5</color>
+</resources>

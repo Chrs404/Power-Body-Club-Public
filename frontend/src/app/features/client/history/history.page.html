@@ -1,0 +1,207 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Storico</ion-title>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-segment [value]="tab()" (ionChange)="onTabChange($any($event).detail.value)">
+      <ion-segment-button value="schede"><ion-label>Schede</ion-label></ion-segment-button>
+      <ion-segment-button value="pesi"><ion-label>Pesi</ion-label></ion-segment-button>
+      <ion-segment-button value="allenamenti"><ion-label>Sessioni</ion-label></ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="alert alert-danger m-3">{{ errorMessage() }}</div>
+  } @else if (tab() === 'schede') {
+
+    @if (workouts().length === 0) {
+      <div class="text-center py-5 px-4">
+        <ion-icon name="time-outline" class="empty-icon"></ion-icon>
+        <p class="text-muted mt-3 mb-0">Nessuna scheda nello storico.</p>
+      </div>
+    } @else {
+    <ion-list>
+      @for (w of workouts(); track w.id) {
+        <ion-item button [detail]="true" (click)="openDetail(w)">
+          <ion-label>
+            <h2>
+              {{ w.name }}
+              @if (w.status === 'ACTIVE') {
+                <ion-badge color="success" class="ms-2">attuale</ion-badge>
+              }
+            </h2>
+            <p>
+              {{ w.startDate | date: 'dd/MM/yyyy' }}
+              @if (w.endDate) {
+                — {{ w.endDate | date: 'dd/MM/yyyy' }}
+              }
+            </p>
+            @if (w._count) {
+              <ion-note>{{ w._count.days }} giorni</ion-note>
+            }
+          </ion-label>
+        </ion-item>
+      }
+    </ion-list>
+
+    <p class="text-muted small text-center px-3 py-3 mb-0">
+      Le schede passate sono consultabili in sola lettura.
+    </p>
+    }
+
+  } @else if (tab() === 'pesi') {
+
+    @if (weightsByExercise.length === 0) {
+      <div class="text-center py-5 px-4">
+        <ion-icon name="trending-up-outline" class="empty-icon"></ion-icon>
+        <p class="text-muted mt-3 mb-0">
+          Nessun peso registrato.<br />
+          Puoi registrarli dalla tua scheda.
+        </p>
+      </div>
+    } @else {
+      <ion-accordion-group>
+        @for (block of weightsByExercise; track block.name) {
+          <ion-accordion [value]="block.name">
+            <ion-item slot="header">
+              <ion-label>
+                <h2>{{ block.name }}</h2>
+                <p>
+                  ultimo: {{ formatWeight(block.logs[0].weight) }} ·
+                  {{ block.logs.length }} registrazioni
+                </p>
+              </ion-label>
+            </ion-item>
+            <div slot="content">
+              <!-- Il grafico precede l'elenco: l'andamento e' la
+                   domanda a cui si vuole rispondere aprendo la sezione,
+                   i singoli valori sono il dettaglio. -->
+              <app-weight-chart [punti]="puntiGrafico(block.logs)"></app-weight-chart>
+
+              <ion-list>
+                @for (log of block.logs; track log.id) {
+                  <ion-item>
+                    <ion-label>
+                      <h3>{{ formatWeight(log.weight) }}</h3>
+                      <p>
+                        {{ log.performedAt | date: 'dd/MM/yyyy' }}
+                        @if (log.reps) {
+                          · {{ log.reps }} ripetizioni
+                        }
+                      </p>
+                      @if (log.notes) {
+                        <ion-note>{{ log.notes }}</ion-note>
+                      }
+                    </ion-label>
+                  </ion-item>
+                }
+              </ion-list>
+            </div>
+          </ion-accordion>
+        }
+      </ion-accordion-group>
+    }
+
+  } @else {
+
+    @if (sessions().length === 0) {
+      <div class="text-center py-5 px-4">
+        <ion-icon name="checkmark-done-outline" class="empty-icon"></ion-icon>
+        <p class="text-muted mt-3 mb-0">
+          Nessun allenamento concluso.<br />
+          Le sessioni compaiono qui dopo "Ricomincia".
+        </p>
+      </div>
+    } @else {
+      <ion-list>
+        @for (s of sessions(); track s.id) {
+          <ion-item>
+            <ion-label>
+              <h2>{{ s.completedAt | date: 'dd/MM/yyyy' }}</h2>
+              <p>{{ s.workout.name }}</p>
+              <ion-note>
+                {{ s._count.completed }} esercizi
+                @if (sessionDuration(s); as dur) {
+                  · {{ dur }}
+                }
+              </ion-note>
+            </ion-label>
+          </ion-item>
+        }
+      </ion-list>
+    }
+
+  }
+
+  <ion-modal [isOpen]="detailOpen()" (didDismiss)="detailOpen.set(false)">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ detail()?.name || 'Scheda' }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="detailOpen.set(false)">Chiudi</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        @if (detailLoading()) {
+          <div class="d-flex justify-content-center py-5">
+            <ion-spinner name="crescent"></ion-spinner>
+          </div>
+        } @else if (detail(); as w) {
+          <div class="px-3 pt-3">
+            <ion-note>
+              {{ w.startDate | date: 'dd/MM/yyyy' }}
+              @if (w.endDate) {
+                — {{ w.endDate | date: 'dd/MM/yyyy' }}
+              }
+            </ion-note>
+            @if (w.notes) {
+              <p class="workout-notes mt-2">{{ w.notes }}</p>
+            }
+          </div>
+
+          <ion-accordion-group>
+            @for (day of w.days; track day.id) {
+              <ion-accordion [value]="day.id">
+                <ion-item slot="header">
+                  <ion-label>
+                    <h2>{{ day.label }}</h2>
+                    <p>{{ day.exercises.length }} esercizi</p>
+                  </ion-label>
+                </ion-item>
+                <div slot="content">
+                  <ion-list>
+                    @for (ex of day.exercises; track ex.id) {
+                      <ion-item>
+                        <ion-label>
+                          <h3>{{ ex.exercise.name }}</h3>
+                          <p>
+                            {{ ex.sets }} × {{ ex.reps }}
+                            @if (formatWeight(ex.suggestedWeight); as weight) {
+                              · {{ weight }}
+                            }
+                          </p>
+                        </ion-label>
+                      </ion-item>
+                    }
+                  </ion-list>
+                </div>
+              </ion-accordion>
+            }
+          </ion-accordion-group>
+        }
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

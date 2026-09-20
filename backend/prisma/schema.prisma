@@ -1,0 +1,326 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// ENUM
+// ---------------------------------------------------------------------------
+
+enum Role {
+  CLIENT
+  TRAINER
+}
+
+enum WorkoutStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum MuscleGroup {
+  QUADRICEPS
+  ADDUCTORS
+  ABDUCTORS
+  HAMSTRINGS
+  CALVES
+  LATS
+  CHEST
+  DELTOIDS
+  TRAPS
+  TRICEPS
+  BICEPS
+  FOREARMS
+  GLUTES
+  ABS
+  LOWER_BACK
+  CARDIO
+}
+
+enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+// ---------------------------------------------------------------------------
+// UTENTI E ABBONAMENTI
+// ---------------------------------------------------------------------------
+
+model User {
+  id           Int    @id @default(autoincrement())
+  username     String @unique
+  passwordHash String
+  role         Role   @default(CLIENT)
+
+  // Nullable: l'istruttore crea l'account con il solo username,
+  // il cliente completa il profilo al primo accesso.
+  firstName String?
+  lastName  String?
+  email     String?   @unique
+  phone     String?
+  birthDate DateTime? @db.Date
+  notes     String?
+
+  mustChangePassword Boolean @default(true)
+  isActive           Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions   Subscription[]
+  workouts        Workout[]        @relation("WorkoutOwner")
+  createdWorkouts Workout[]        @relation("WorkoutAuthor")
+  sessions        WorkoutSession[]
+  weightLogs      WeightLog[]
+  publishedNews   News[]
+
+  @@index([lastName, firstName])
+  @@index([role, isActive])
+}
+
+model Subscription {
+  id     Int @id @default(autoincrement())
+  userId Int
+
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  plan      String?
+  notes     String?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, endDate])
+  @@index([endDate])
+}
+
+// ---------------------------------------------------------------------------
+// CATALOGO ESERCIZI
+// ---------------------------------------------------------------------------
+
+model Exercise {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String?
+  muscleGroup MuscleGroup
+  imageUrl    String?
+  videoUrl    String?
+  isActive    Boolean     @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workoutExercises WorkoutExercise[]
+  weightLogs       WeightLog[]
+
+  @@unique([name, muscleGroup])
+  @@index([muscleGroup])
+}
+
+// ---------------------------------------------------------------------------
+// SCHEDE DI ALLENAMENTO
+// ---------------------------------------------------------------------------
+
+model Workout {
+  id          Int @id @default(autoincrement())
+  userId      Int
+  createdById Int
+
+  name      String
+  status    WorkoutStatus @default(ACTIVE)
+
+  // Scheda modello ("scheda rapida"): appartiene all'istruttore invece che
+  // a un cliente e non e' mai la scheda attiva di nessuno. Assegnarla a un
+  // cliente significa duplicarla, quindi il modello resta intatto e
+  // riutilizzabile.
+  //
+  // Un booleano invece di tre tabelle parallele: la struttura di un modello
+  // e' identica a quella di una scheda, duplicarla significherebbe
+  // mantenere ogni modifica futura in due posti.
+  isTemplate Boolean @default(false)
+
+  startDate DateTime      @db.Date
+  endDate   DateTime?     @db.Date
+  notes     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User             @relation("WorkoutOwner", fields: [userId], references: [id], onDelete: Cascade)
+  createdBy User             @relation("WorkoutAuthor", fields: [createdById], references: [id])
+  days      WorkoutDay[]
+  sessions  WorkoutSession[]
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@index([isTemplate, name])
+}
+
+model WorkoutDay {
+  id        Int @id @default(autoincrement())
+  workoutId Int
+
+  label String
+  order Int
+
+  workout   Workout           @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  exercises WorkoutExercise[]
+
+  @@unique([workoutId, order])
+}
+
+model WorkoutExercise {
+  id           Int @id @default(autoincrement())
+  workoutDayId Int
+  exerciseId   Int
+
+  order Int
+  sets  Int
+
+  // String e non Int: in palestra si scrive "8-10", "max", "12 per lato".
+  reps String
+
+  restSeconds     Int      @default(60)
+  suggestedWeight Decimal? @db.Decimal(6, 2)
+  notes           String?
+
+  // Superset: un esercizio collegato al precedente viene eseguito di fila,
+  // senza recupero intermedio. Una sequenza contigua di righe collegate
+  // forma un blocco; la prima riga del blocco ("capogruppo") detta
+  // il numero di giri e il recupero validi per tutto il gruppo.
+  //
+  // Il vincolo di contiguita' non e' una limitazione: un superset A1/A2/A3
+  // si esegue per definizione in sequenza. La prima riga di un giorno
+  // ha sempre linkedToPrevious = false, garantito dal service.
+  linkedToPrevious Boolean @default(false)
+
+  workoutDay  WorkoutDay          @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+  exercise    Exercise            @relation(fields: [exerciseId], references: [id])
+  completions CompletedExercise[]
+
+  @@unique([workoutDayId, order])
+  @@index([exerciseId])
+}
+
+// ---------------------------------------------------------------------------
+// ALLENAMENTI EFFETTUATI
+// ---------------------------------------------------------------------------
+
+model WorkoutSession {
+  id        Int @id @default(autoincrement())
+  userId    Int
+  workoutId Int
+
+  startedAt DateTime @default(now())
+
+  // NULL = sessione aperta. Il "reset allenamento" la chiude valorizzando
+  // questo campo e ne apre una nuova: nulla viene cancellato.
+  completedAt DateTime?
+
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workout   Workout             @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  completed CompletedExercise[]
+
+  @@index([userId, startedAt])
+  @@index([userId, completedAt])
+}
+
+model CompletedExercise {
+  id                Int @id @default(autoincrement())
+  sessionId         Int
+  workoutExerciseId Int
+
+  completedAt DateTime @default(now())
+
+  session         WorkoutSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  workoutExercise WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, workoutExerciseId])
+}
+
+// ---------------------------------------------------------------------------
+// STORICO PESI
+// ---------------------------------------------------------------------------
+
+model WeightLog {
+  id     Int @id @default(autoincrement())
+  userId Int
+
+  // Collegato a Exercise e non a WorkoutExercise: il progresso sulla panca
+  // piana deve restare continuo anche quando viene assegnata una scheda nuova.
+  exerciseId Int
+
+  weight      Decimal  @db.Decimal(6, 2)
+  reps        Int?
+  performedAt DateTime @db.Date
+  notes       String?
+
+  createdAt DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@index([userId, exerciseId, performedAt])
+}
+
+// ---------------------------------------------------------------------------
+// COMUNICAZIONI E ORARI
+// ---------------------------------------------------------------------------
+
+model News {
+  id       Int @id @default(autoincrement())
+  authorId Int
+
+  title       String
+  content     String
+  imageUrl    String?
+  isPublished Boolean @default(true)
+
+  publishedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author User @relation(fields: [authorId], references: [id])
+
+  @@index([publishedAt])
+}
+
+model GymSchedule {
+  id Int @id @default(autoincrement())
+
+  dayOfWeek WeekDay
+
+  // String "HH:mm" e non @db.Time: Prisma mappa Time su Date con una data
+  // fittizia, fonte costante di bug di fuso orario per un dato
+  // che va solo mostrato a schermo.
+  openTime  String
+  closeTime String
+
+  // Piu' righe per giorno permettono la chiusura pomeridiana
+  // (es. 07:00-14:00 e 16:00-22:00) senza colonne nullable.
+  order Int @default(0)
+
+  @@unique([dayOfWeek, order])
+}
+
+model Closure {
+  id Int @id @default(autoincrement())
+
+  // Intervallo e non data singola: le chiusure reali sono
+  // "dal 10 al 24 agosto", non 15 righe separate.
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  reason    String
+
+  createdAt DateTime @default(now())
+
+  @@index([startDate])
+}

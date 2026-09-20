@@ -1,0 +1,144 @@
+.finestra-nota {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.8rem;
+  color: var(--ion-color-medium);
+  margin: 0.5rem 0 0.25rem;
+}
+
+.finestra-nota ion-button {
+  --padding-start: 4px;
+  --padding-end: 4px;
+  font-size: 0.78rem;
+  height: 1.5rem;
+}
+
+/* --- Card riassuntive --------------------------------------------------- */
+
+.riepilogo-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.9rem 0.5rem;
+  border: 1px solid var(--ion-color-light-shade);
+  border-radius: 12px;
+  background: var(--ion-card-background, var(--ion-color-light));
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.riepilogo-card ion-icon {
+  font-size: 1.3rem;
+  color: var(--ion-color-medium);
+  margin-bottom: 0.1rem;
+}
+
+.riepilogo-valore {
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.riepilogo-etichetta {
+  font-size: 0.75rem;
+  color: var(--ion-color-medium);
+}
+
+/* Solo quando c'e' qualcosa da segnalare: altrimenti ogni card sarebbe
+   sempre "accesa" e perderebbe significato. */
+.riepilogo-card.urgente {
+  border-color: color-mix(in srgb, var(--ion-color-warning) 45%, transparent);
+}
+
+.riepilogo-card.urgente .riepilogo-valore {
+  color: var(--ion-color-warning-shade);
+}
+
+.riepilogo-card.urgente ion-icon {
+  color: var(--ion-color-warning-shade);
+}
+
+.riepilogo-card.attiva {
+  border-color: var(--ion-color-primary);
+  background: color-mix(in srgb, var(--ion-color-primary) 8%, var(--ion-card-background, var(--ion-color-light)));
+}
+
+/* --- Elenco -------------------------------------------------------------- */
+
+ion-list-header {
+  min-height: 2rem;
+  padding-inline: 0.25rem;
+}
+
+.avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--ion-color-medium);
+}
+
+/*
+ * Colori di urgenza.
+ *
+ * Le tinte dirette del tema (warning-shade, secondary-shade) non erano
+ * adatte qui: misurate a contrasto, restavano sotto la soglia minima
+ * leggibile (WCAG AA, 4.5:1) come testo su sfondo bianco, e "urgente"
+ * e "in arrivo" erano quasi indistinguibili l'una dall'altra a colpo
+ * d'occhio — troppo vicine nella stessa famiglia di ocra.
+ *
+ * "In arrivo" usa qui il verde oliva del marchio (primary-shade):
+ * riprende un colore già nella palette e comunica "normale", lasciando
+ * rosso e ambra ai due livelli davvero urgenti.
+ */
+.avatar.scaduto {
+  background: var(--ion-color-danger);
+}
+
+.avatar.urgente {
+  background: #8d6c20;
+}
+
+.avatar.in-arrivo {
+  background: var(--ion-color-primary-shade);
+}
+
+.esito {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.esito ion-icon {
+  color: var(--ion-color-medium);
+  font-size: 1rem;
+}
+
+.badge-scadenza {
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ion-color-medium);
+}
+
+.badge-scadenza.scaduto {
+  color: var(--ion-color-danger);
+}
+
+.badge-scadenza.urgente {
+  color: #8d6c20;
+}
+
+.badge-scadenza.in-arrivo {
+  color: var(--ion-color-primary-shade);
+}

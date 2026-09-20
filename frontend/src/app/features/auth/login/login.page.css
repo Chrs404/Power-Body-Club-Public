@@ -1,0 +1,74 @@
+/* La schermata di accesso e' l'unica senza barra superiore:
+   il logo fa da intestazione. Fondo carbone come il contorno del badge,
+   cosi' la pergamena del logo risalta. */
+.login-content {
+  --background: var(--pbc-charcoal);
+  --color: var(--pbc-cream-light);
+}
+
+.login-wrap {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 2rem 1.5rem calc(2rem + env(safe-area-inset-bottom));
+  max-width: 420px;
+  margin-inline: auto;
+}
+
+.brand {
+  text-align: center;
+}
+
+.brand-logo {
+  width: 190px;
+  max-width: 62vw;
+  height: auto;
+  border-radius: 50%;
+  /* Il logo ha il fondo crema: un alone morbido lo stacca dal carbone */
+  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.45);
+}
+
+.brand-sub {
+  margin: 1rem 0 0;
+  font-family: var(--pbc-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.78rem;
+  color: var(--pbc-ochre);
+}
+
+.login-form ion-list {
+  background: transparent;
+}
+
+.field {
+  --background: rgba(246, 239, 226, 0.07);
+  --color: var(--pbc-cream-light);
+  --border-radius: var(--pbc-radius-sm);
+  --highlight-color-focused: var(--pbc-ochre);
+  margin-bottom: 0.6rem;
+}
+
+.field ion-input {
+  --placeholder-color: rgba(246, 239, 226, 0.5);
+  --color: var(--pbc-cream-light);
+}
+
+.login-btn {
+  --background: var(--pbc-ochre);
+  --background-activated: #a97846;
+  --background-hover: #c69561;
+  --color: #2c2c24;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  height: 48px;
+}
+
+.login-hint {
+  text-align: center;
+  font-size: 0.82rem;
+  color: rgba(246, 239, 226, 0.55);
+  margin: 0;
+}

@@ -1,0 +1,286 @@
+.workout-head h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.workout-notes {
+  font-size: 0.9rem;
+  color: var(--ion-color-medium-shade);
+  background: var(--ion-color-light);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+}
+
+.exercise-index {
+  color: var(--ion-color-medium);
+  margin-right: 0.25rem;
+}
+
+.exercise-params {
+  font-size: 0.85rem;
+}
+
+.group-chip {
+  font-size: 0.7rem;
+  height: 22px;
+}
+
+.exercise-detail {
+  padding: 0.75rem 1rem 1rem;
+  background: var(--ion-color-light);
+}
+
+.params-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Riga propria per le ripetizioni: testo libero, potenzialmente lungo. */
+.param-reps {
+  margin-bottom: 0.75rem;
+}
+
+.param-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--ion-color-medium);
+}
+
+.param-value {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.exercise-description {
+  font-size: 0.85rem;
+  color: var(--ion-color-medium-shade);
+  margin-bottom: 0.5rem;
+}
+
+.exercise-note {
+  font-size: 0.85rem;
+  /* Velatura invece di tinta piena: sul tema scuro il giallo pieno
+     con testo crema scendeva a 1.9:1. */
+  background: color-mix(in srgb, var(--ion-color-warning) 16%, transparent);
+  border-left: 3px solid var(--ion-color-warning);
+  border-radius: 0 6px 6px 0;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: var(--ion-color-medium);
+}
+
+.progress-bar-wrap {
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+
+.progress-text {
+  font-size: 0.85rem;
+  color: var(--ion-color-medium-shade);
+}
+
+/* Esercizio completato.
+   Prima usavo un verde pieno (--ion-color-success-tint) lasciando
+   invariati i colori del testo: sul tema scuro la riga "ultimo kg"
+   scendeva a 1.04:1 di contrasto, cioe' illeggibile.
+   Ora la conferma visiva e' una velatura verde sul fondo esistente:
+   il testo mantiene il proprio colore e resta leggibile in entrambi
+   i temi, mentre spunta e barratura bastano a segnalare lo stato. */
+ion-item.completed {
+  --background: color-mix(in srgb, var(--ion-color-success) 14%, var(--ion-item-background));
+}
+
+/* Ripiego per i browser senza color-mix */
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  ion-item.completed {
+    --background: #e8efe7;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    ion-item.completed {
+      --background: #2c3325;
+    }
+  }
+}
+
+h2.done {
+  text-decoration: line-through;
+  /* 0.65 abbassava il contrasto a 4.3:1; con 0.8 resta sopra 6:1
+     e la barratura si legge comunque come "fatto". */
+  opacity: 0.8;
+}
+
+/* Verde piu' scuro sul chiaro, piu' chiaro sullo scuro:
+   l'oliva primario sulla velatura non arrivava alla soglia. */
+ion-item.completed .last-weight {
+  color: #3e6337 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  ion-item.completed .last-weight {
+    color: #9dc993 !important;
+  }
+}
+
+.last-weight {
+  font-size: 0.78rem !important;
+  color: var(--ion-color-primary) !important;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.last-weight .up {
+  color: var(--ion-color-success);
+  font-weight: 600;
+}
+
+.last-weight .down {
+  color: var(--ion-color-danger);
+  font-weight: 600;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.day-done {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: color-mix(in srgb, var(--ion-color-success) 16%, transparent);
+  border-radius: 8px;
+  padding: 0.85rem 1rem;
+}
+
+.day-done ion-icon {
+  font-size: 1.8rem;
+  color: var(--ion-color-success-shade);
+}
+
+.day-done p {
+  font-size: 0.85rem;
+  color: var(--ion-color-medium-shade);
+}
+
+/* --- Superset ---------------------------------------------------------- */
+
+.superset-etichetta {
+  display: inline-block;
+  font-family: var(--pbc-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--ion-color-secondary-shade);
+  background: color-mix(in srgb, var(--ion-color-secondary) 16%, transparent);
+  border-radius: 4px;
+  padding: 0.1rem 0.4rem;
+  margin-bottom: 0.3rem;
+}
+
+
+.esercizio-dettaglio + .esercizio-dettaglio {
+  border-top: 1px solid var(--ion-color-light-shade);
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.dettaglio-titolo {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 0.35rem;
+}
+
+.timer-blocco {
+  border-top: 1px solid var(--ion-color-light-shade);
+  padding-top: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* --- Allenamento completato -------------------------------------------- */
+
+/*
+ * Compare al posto dell'azzeramento immediato: lo stato completato resta
+ * visibile qualche secondo, cosi' si capisce di aver finito invece di
+ * vedere le spunte sparire di colpo.
+ */
+.celebrazione {
+  margin: 0.75rem 1rem 1rem;
+  padding: 1.5rem 1.25rem;
+  border-radius: 14px;
+  text-align: center;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--ion-color-success) 16%, var(--ion-background-color));
+  border: 1px solid color-mix(in srgb, var(--ion-color-success) 35%, transparent);
+  animation: celebrazione-entra 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  .celebrazione {
+    background: #e4efe1;
+  }
+}
+
+.celebrazione-cerchio {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 0.75rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ion-color-success);
+  animation: celebrazione-pulsa 1.6s ease-in-out infinite;
+}
+
+.celebrazione-cerchio ion-icon {
+  font-size: 46px;
+  color: #fff;
+}
+
+.celebrazione h2 {
+  font-family: var(--pbc-font-display);
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin: 0 0 0.2rem;
+  color: var(--ion-text-color);
+}
+
+.celebrazione p {
+  margin: 0 0 0.6rem;
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+}
+
+.celebrazione ion-note {
+  font-size: 0.75rem;
+}
+
+@keyframes celebrazione-entra {
+  from { opacity: 0; transform: translateY(-10px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes celebrazione-pulsa {
+  0%, 100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(91, 140, 81, 0.45); }
+  50%      { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(91, 140, 81, 0); }
+}
+
+/* Chi preferisce meno movimento non vede l'animazione ripetuta */
+@media (prefers-reduced-motion: reduce) {
+  .celebrazione,
+  .celebrazione-cerchio {
+    animation: none;
+  }
+}

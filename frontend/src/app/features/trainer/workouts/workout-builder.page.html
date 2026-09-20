@@ -1,0 +1,411 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button [defaultHref]="percorsoRitorno()"></ion-back-button>
+    </ion-buttons>
+    <ion-title>
+      @if (modalitaModello()) {
+        {{ templateId() ? 'Modifica scheda rapida' : 'Nuova scheda rapida' }}
+      } @else {
+        {{ editingWorkoutId() ? 'Modifica scheda' : 'Nuova scheda' }}
+      }
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+  } @else if (errorMessage() && days().length === 0) {
+    <!--
+      Caricamento fallito: senza questo blocco la pagina apparirebbe come
+      una scheda nuova e vuota, senza alcuna indicazione del problema.
+    -->
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-12 col-md-8">
+          <div class="alert alert-danger">{{ errorMessage() }}</div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-12 col-md-9 col-lg-7">
+
+          @if (modalitaModello()) {
+            <p class="text-muted mb-3">
+              Modello riutilizzabile: potrai assegnarlo a piu' clienti
+              senza ricostruirlo.
+            </p>
+          } @else {
+            <p class="text-muted mb-3">
+              Cliente: <strong>{{ clientName() }}</strong>
+            </p>
+          }
+
+          <ion-list class="mb-3">
+            <ion-item>
+              <ion-input label="Nome scheda *" labelPlacement="floating"
+                [(ngModel)]="name" placeholder="es. Massa - Ottobre"></ion-input>
+            </ion-item>
+            @if (!modalitaModello()) {
+              <ion-item>
+                <ion-input label="Inizio" labelPlacement="stacked" type="date"
+                  [(ngModel)]="startDate"></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-input label="Fine" labelPlacement="stacked" type="date"
+                  [(ngModel)]="endDate"></ion-input>
+              </ion-item>
+            }
+            <ion-item>
+              <ion-textarea label="Note" labelPlacement="floating"
+                [(ngModel)]="notes" [autoGrow]="true" rows="2"></ion-textarea>
+            </ion-item>
+          </ion-list>
+
+          @for (day of days(); track day.uid; let dayIndex = $index) {
+            <div class="day-block mb-3">
+              <div class="day-head">
+                <ion-input
+                  class="day-title"
+                  [value]="day.label"
+                  (ionInput)="updateDayLabel(dayIndex, $any($event.target).value)"
+                  placeholder="Nome del giorno"
+                ></ion-input>
+                <ion-button fill="clear" color="danger" size="small"
+                  (click)="confirmRemoveDay(dayIndex)">
+                  <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+                </ion-button>
+              </div>
+
+              @if (day.exercises.length === 0) {
+                <p class="text-muted small px-3 py-2 mb-0">
+                  Nessun esercizio. Aggiungine uno qui sotto.
+                </p>
+              } @else {
+                <ion-reorder-group [disabled]="false"
+                  (ionItemReorder)="reorderExercises(dayIndex, $any($event))">
+                  @for (ex of day.exercises; track ex.uid; let exIndex = $index) {
+                    <div class="exercise-row"
+                      [class.in-superset]="ex.linkedToPrevious"
+                      [class.apre-superset]="apreSuperset(day, exIndex)">
+
+                      <div class="exercise-head">
+                        <ion-reorder></ion-reorder>
+
+                        @if (exIndex > 0) {
+                          <ion-button fill="clear" size="small"
+                            [color]="ex.linkedToPrevious ? 'secondary' : 'medium'"
+                            (click)="toggleCollegamento(dayIndex, exIndex)"
+                            [attr.aria-label]="ex.linkedToPrevious
+                              ? 'Scollega dal precedente'
+                              : 'Collega al precedente in superset'">
+                            <ion-icon
+                              [name]="ex.linkedToPrevious ? 'link-outline' : 'unlink-outline'"
+                              slot="icon-only"></ion-icon>
+                          </ion-button>
+                        } @else {
+                          <span class="link-spacer"></span>
+                        }
+
+                        <span class="exercise-position">{{ siglaDi(day, exIndex) }}</span>
+                        <span class="exercise-name">{{ ex.exerciseName }}</span>
+
+                        <ion-button fill="clear" color="danger" size="small"
+                          (click)="removeExercise(dayIndex, exIndex)"
+                          aria-label="Rimuovi">
+                          <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
+                        </ion-button>
+                      </div>
+
+                      <div class="row g-2 px-3 pb-2">
+                        <!--
+                          I tre campi numerici stanno su una riga; le
+                          ripetizioni hanno una riga propria perche' sono
+                          testo libero e possono contenere il tempo di
+                          esecuzione per esteso ("12 positiva 2 secondi,
+                          fermo 1, negativa 4"): in un quarto di larghezza
+                          non se ne vedrebbe che una parola.
+                        -->
+                        <div class="col-4">
+                          <ion-input label="Serie" labelPlacement="stacked" type="number"
+                            [value]="ex.sets" min="1"
+                            [disabled]="ex.linkedToPrevious"
+                            (ionInput)="aggiornaGiri(dayIndex, exIndex, +$any($event.target).value)"
+                          ></ion-input>
+                        </div>
+                        <div class="col-4">
+                          <ion-input label="Rec. (s)" labelPlacement="stacked" type="number"
+                            [value]="ex.restSeconds" min="0"
+                            [disabled]="ex.linkedToPrevious"
+                            (ionInput)="aggiornaRecupero(dayIndex, exIndex, +$any($event.target).value)"
+                          ></ion-input>
+                        </div>
+                        <div class="col-4">
+                          <ion-input label="Kg" labelPlacement="stacked" type="number"
+                            [value]="ex.suggestedWeight" min="0" step="0.5"
+                            (ionInput)="updateExercise(dayIndex, exIndex, { suggestedWeight: $any($event.target).value === '' ? null : +$any($event.target).value })"
+                          ></ion-input>
+                        </div>
+                        <div class="col-12">
+                          <ion-textarea label="Ripetizioni" labelPlacement="stacked"
+                            [value]="ex.reps" [autoGrow]="true" rows="1"
+                            [maxlength]="120"
+                            placeholder="8-10, max, oppure 12 positiva 2s fermo 1s negativa 4s"
+                            (ionInput)="updateExercise(dayIndex, exIndex, { reps: $any($event.target).value })"
+                          ></ion-textarea>
+                        </div>
+                      </div>
+
+                      @if (ex.linkedToPrevious) {
+                        <p class="superset-nota">
+                          Giri e recupero sono quelli del primo esercizio del superset.
+                        </p>
+                      }
+                    </div>
+                  }
+                </ion-reorder-group>
+              }
+
+              <ion-button expand="block" fill="clear" size="small"
+                (click)="openPicker(dayIndex)">
+                <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+                Aggiungi esercizio
+              </ion-button>
+            </div>
+          }
+
+          <ion-button expand="block" fill="outline" (click)="addDay()">
+            <ion-icon name="add" slot="start"></ion-icon>
+            Aggiungi giorno
+          </ion-button>
+
+          @if (errorMessage()) {
+            <div class="alert alert-danger py-2 px-3 mt-3">{{ errorMessage() }}</div>
+          }
+
+          <ion-note class="d-block text-center mt-3">
+            {{ days().length }} giorni · {{ totalExercises }} esercizi
+          </ion-note>
+
+          @if (blockingReason; as reason) {
+            <ion-note color="warning" class="d-block text-center mt-1">
+              {{ reason }}
+            </ion-note>
+          }
+
+          <ion-button expand="block" class="mt-2 mb-4"
+            [disabled]="!canSave || saving()" (click)="save()">
+            @if (saving()) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              <ion-icon name="save-outline" slot="start"></ion-icon>
+              @if (modalitaModello()) {
+                {{ templateId() ? 'Salva modifiche' : 'Salva scheda rapida' }}
+              } @else {
+                {{ editingWorkoutId() ? 'Salva modifiche' : 'Crea e assegna' }}
+              }
+            }
+          </ion-button>
+
+          @if (!editingWorkoutId() && !modalitaModello()) {
+            <p class="text-muted small text-center">
+              L'eventuale scheda attiva precedente verrà archiviata automaticamente.
+            </p>
+          }
+
+        </div>
+      </div>
+    </div>
+  }
+
+  <ion-modal [isOpen]="pickerOpen()" (didDismiss)="chiudiPicker()">
+    <ng-template>
+      <ion-header>
+        @if (creandoEsercizio()) {
+          <ion-toolbar>
+            <ion-buttons slot="start">
+              <ion-button (click)="annullaCreazioneEsercizio()">
+                <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+            <ion-title>Nuovo esercizio</ion-title>
+          </ion-toolbar>
+        } @else {
+          <ion-toolbar>
+            <ion-title>
+              @if (selezione().length > 0) {
+                {{ selezione().length }} selezionat{{ selezione().length === 1 ? 'o' : 'i' }}
+              } @else {
+                Scegli esercizi
+              }
+            </ion-title>
+            <ion-buttons slot="end">
+              @if (selezione().length > 0) {
+                <ion-button (click)="svuotaSelezione()">Svuota</ion-button>
+              }
+              <ion-button (click)="apriCreazioneEsercizio()" aria-label="Crea nuovo esercizio">
+                <ion-icon name="add" slot="icon-only"></ion-icon>
+              </ion-button>
+              <ion-button (click)="chiudiPicker()">Chiudi</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+          <ion-toolbar>
+            <ion-searchbar placeholder="Cerca" [(ngModel)]="catalogSearch"
+              (ionInput)="onCatalogSearch()" [debounce]="0"></ion-searchbar>
+          </ion-toolbar>
+        }
+      </ion-header>
+      <ion-content class="ion-padding">
+        @if (creandoEsercizio()) {
+
+          <form [formGroup]="nuovoEsercizioForm" (ngSubmit)="salvaNuovoEsercizio()">
+            <ion-list>
+              <ion-item>
+                <ion-input label="Nome *" labelPlacement="floating"
+                  formControlName="name" autocapitalize="sentences"></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-select label="Gruppo muscolare *" labelPlacement="floating"
+                  formControlName="muscleGroup" interface="action-sheet"
+                  cancelText="Annulla">
+                  @for (g of muscleGroups; track g) {
+                    <ion-select-option [value]="g">{{ groupLabels[g] }}</ion-select-option>
+                  }
+                </ion-select>
+              </ion-item>
+              <ion-item>
+                <ion-textarea label="Descrizione" labelPlacement="floating"
+                  formControlName="description" [autoGrow]="true" rows="2"
+                  placeholder="Esecuzione, note tecniche…"></ion-textarea>
+              </ion-item>
+            </ion-list>
+
+            <ion-note class="d-block px-2 mt-2">
+              L'esercizio entra nel catalogo della palestra e viene aggiunto
+              subito alla selezione.
+            </ion-note>
+
+            @if (erroreEsercizio()) {
+              <div class="alert alert-danger py-2 px-3 mt-3">{{ erroreEsercizio() }}</div>
+            }
+
+            <ion-button expand="block" type="submit" class="mt-3"
+              [disabled]="salvandoEsercizio()">
+              @if (salvandoEsercizio()) {
+                <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+                Crea e aggiungi
+              }
+            </ion-button>
+          </form>
+
+        } @else if (catalogLoading()) {
+          <div class="d-flex justify-content-center py-5">
+            <ion-spinner name="crescent"></ion-spinner>
+          </div>
+        } @else if (catalog().length === 0) {
+
+          <!--
+            Il catalogo vuoto e' il momento in cui la creazione al volo
+            serve davvero: invece di un vicolo cieco, si propone di
+            creare l'esercizio appena cercato.
+          -->
+          <div class="pbc-empty">
+            <p class="mb-3">
+              @if (inRicerca) {
+                Nessun esercizio trovato per "{{ catalogSearch }}".
+              } @else {
+                Il catalogo è vuoto.
+              }
+            </p>
+            <ion-button fill="outline" (click)="apriCreazioneEsercizio()">
+              <ion-icon name="add" slot="start"></ion-icon>
+              Crea "{{ catalogSearch.trim() || 'nuovo esercizio' }}"
+            </ion-button>
+          </div>
+
+        } @else if (inRicerca) {
+
+          <!-- Durante la ricerca il raggruppamento nasconderebbe i risultati -->
+          <ion-list>
+            @for (ex of catalog(); track ex.id) {
+              <ion-item button (click)="toggleSelezione(ex)"
+                [class.selezionato]="posizioneSelezione(ex.id) > 0">
+                <div slot="start" class="segno-selezione"
+                  [class.attivo]="posizioneSelezione(ex.id) > 0">
+                  @if (posizioneSelezione(ex.id) > 0) {
+                    {{ posizioneSelezione(ex.id) }}
+                  }
+                </div>
+                <ion-label>
+                  <h2>{{ ex.name }}</h2>
+                </ion-label>
+                <ion-chip slot="end" outline="true">
+                  {{ groupLabels[ex.muscleGroup] }}
+                </ion-chip>
+              </ion-item>
+            }
+          </ion-list>
+
+        } @else {
+
+          <ion-accordion-group
+            [value]="gruppoAperto()"
+            (ionChange)="onGruppoChange($any($event).detail.value)"
+          >
+            @for (blocco of catalogoRaggruppato; track blocco.gruppo) {
+              <ion-accordion [value]="blocco.gruppo">
+                <ion-item slot="header">
+                  <ion-label>
+                    <h2>{{ groupLabels[blocco.gruppo] }}</h2>
+                  </ion-label>
+                  <ion-badge slot="end" color="medium">
+                    {{ blocco.esercizi.length }}
+                  </ion-badge>
+                </ion-item>
+                <div slot="content">
+                  <ion-list>
+                    @for (ex of blocco.esercizi; track ex.id) {
+                      <ion-item button (click)="toggleSelezione(ex)"
+                        [class.selezionato]="posizioneSelezione(ex.id) > 0">
+                        <div slot="start" class="segno-selezione"
+                          [class.attivo]="posizioneSelezione(ex.id) > 0">
+                          @if (posizioneSelezione(ex.id) > 0) {
+                            {{ posizioneSelezione(ex.id) }}
+                          }
+                        </div>
+                        <ion-label>
+                          <h3>{{ ex.name }}</h3>
+                          @if (ex.description) {
+                            <p>{{ ex.description }}</p>
+                          }
+                        </ion-label>
+                      </ion-item>
+                    }
+                  </ion-list>
+                </div>
+              </ion-accordion>
+            }
+          </ion-accordion-group>
+
+        }
+      </ion-content>
+
+      @if (selezione().length > 0 && !creandoEsercizio()) {
+        <ion-footer>
+          <ion-toolbar>
+            <ion-button expand="block" class="m-2" (click)="confermaSelezione()">
+              Aggiungi {{ selezione().length }}
+              esercizi{{ selezione().length === 1 ? 'o' : '' }}
+            </ion-button>
+          </ion-toolbar>
+        </ion-footer>
+      }
+    </ng-template>
+  </ion-modal>
+</ion-content>

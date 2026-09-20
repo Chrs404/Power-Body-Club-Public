@@ -1,0 +1,98 @@
+.grafico {
+  padding: 0.6rem 0.9rem 0.5rem;
+}
+
+.intestazione {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.etichetta {
+  font-family: var(--pbc-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.68rem;
+  color: var(--ion-color-medium);
+  margin-right: 0.4rem;
+}
+
+.variazione {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.variazione.su {
+  color: var(--ion-color-success);
+}
+
+.variazione.giu {
+  color: var(--ion-color-danger);
+}
+
+.intervallo {
+  font-size: 0.72rem;
+  color: var(--ion-color-medium);
+}
+
+/*
+ * preserveAspectRatio="none" fa allungare il disegno alla larghezza
+ * disponibile: su schermi diversi il grafico resta leggibile invece
+ * di rimpicciolirsi.
+ */
+.tela {
+  width: 100%;
+  height: 110px;
+  display: block;
+  overflow: visible;
+}
+
+.tracciato {
+  fill: none;
+  stroke: var(--ion-color-primary);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.punto {
+  fill: var(--ion-background-color);
+  stroke: var(--ion-color-primary);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  cursor: pointer;
+}
+
+.punto.attivo {
+  fill: var(--ion-color-secondary);
+  stroke: var(--ion-color-secondary);
+  r: 5;
+}
+
+.piede {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--ion-color-medium);
+}
+
+.dettaglio {
+  margin-inline: auto;
+  color: var(--ion-color-secondary-shade);
+}
+
+.suggerimento {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.pochi-dati {
+  font-size: 0.82rem;
+  color: var(--ion-color-medium);
+  padding: 0.6rem 0.9rem;
+  margin: 0;
+}

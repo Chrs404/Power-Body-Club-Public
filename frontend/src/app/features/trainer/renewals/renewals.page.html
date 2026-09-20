@@ -1,0 +1,145 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Scadenze</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="cambiaFinestra()">
+        <ion-icon name="options-outline" slot="icon-only"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="pbc-con-fab">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="alert alert-danger m-3">{{ errorMessage() }}</div>
+  } @else {
+
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-12 col-md-8 col-lg-6">
+
+          <p class="finestra-nota px-1">
+            Nei prossimi {{ finestraGiorni() }} giorni
+            <ion-button fill="clear" size="small" (click)="cambiaFinestra()">
+              cambia
+            </ion-button>
+          </p>
+
+          <!-- Due card riassuntive: toccarle imposta anche il filtro sotto. -->
+          <div class="row g-2 px-2 mb-2">
+            <div class="col-6">
+              <button
+                class="riepilogo-card"
+                [class.attiva]="filtro() === 'subscription'"
+                [class.urgente]="totaleUrgente('subscription') > 0"
+                (click)="filtraPer('subscription')"
+              >
+                <ion-icon name="card-outline"></ion-icon>
+                <span class="riepilogo-valore">{{ totaleUrgente('subscription') }}</span>
+                <span class="riepilogo-etichetta">Abbonamenti</span>
+              </button>
+            </div>
+            <div class="col-6">
+              <button
+                class="riepilogo-card"
+                [class.attiva]="filtro() === 'workout'"
+                [class.urgente]="totaleUrgente('workout') > 0"
+                (click)="filtraPer('workout')"
+              >
+                <ion-icon name="barbell-outline"></ion-icon>
+                <span class="riepilogo-valore">{{ totaleUrgente('workout') }}</span>
+                <span class="riepilogo-etichetta">Schede</span>
+              </button>
+            </div>
+          </div>
+
+          <ion-segment [value]="filtro()" (ionChange)="impostaFiltro($any($event).detail.value)">
+            <ion-segment-button value="all">
+              <ion-label>Tutti</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="subscription">
+              <ion-label>Abbonamenti</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="workout">
+              <ion-label>Schede</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+
+          @if (elementiFiltrati().length === 0) {
+            <div class="pbc-empty">
+              <ion-icon name="checkmark-circle-outline"></ion-icon>
+              <p class="mt-3 mb-0">
+                @if (filtro() === 'all') {
+                  Nessuna scadenza nei prossimi {{ finestraGiorni() }} giorni.
+                } @else {
+                  Nessun{{ filtro() === 'subscription' ? 'o abbonamento' : 'a scheda' }}
+                  in scadenza.
+                }
+              </p>
+            </div>
+          } @else {
+
+            <ion-list class="mt-2">
+              @if (scaduti().length > 0) {
+                <ion-list-header>
+                  <ion-icon name="alert-circle-outline" color="danger" class="me-2"></ion-icon>
+                  <ion-label color="danger">Scaduti</ion-label>
+                </ion-list-header>
+
+                @for (item of scaduti(); track item.clientId + item.type) {
+                  <ion-item button [detail]="false" (click)="vaiAlCliente(item)">
+                    <div slot="start" class="avatar scaduto">{{ iniziali(item.clientName) }}</div>
+                    <ion-label>
+                      <h2>{{ item.clientName }}</h2>
+                      <p>{{ etichettaTipo(item.type) }} · {{ item.label }}</p>
+                    </ion-label>
+                    <div slot="end" class="esito">
+                      <span class="badge-scadenza scaduto">{{ testoScadenza(item) }}</span>
+                      <ion-icon name="chevron-forward-outline"></ion-icon>
+                    </div>
+                  </ion-item>
+                }
+              }
+
+              @if (inScadenza().length > 0) {
+                <ion-list-header>
+                  <ion-icon name="time-outline" color="medium" class="me-2"></ion-icon>
+                  <ion-label>In scadenza</ion-label>
+                </ion-list-header>
+
+                @for (item of inScadenza(); track item.clientId + item.type) {
+                  <ion-item button [detail]="false" (click)="vaiAlCliente(item)">
+                    <div class="avatar" [class]="livelloUrgenza(item)" slot="start">
+                      {{ iniziali(item.clientName) }}
+                    </div>
+                    <ion-label>
+                      <h2>{{ item.clientName }}</h2>
+                      <p>{{ etichettaTipo(item.type) }} · {{ item.label }}</p>
+                    </ion-label>
+                    <div slot="end" class="esito">
+                      <span class="badge-scadenza" [class]="livelloUrgenza(item)">
+                        {{ testoScadenza(item) }}
+                      </span>
+                      <ion-icon name="chevron-forward-outline"></ion-icon>
+                    </div>
+                  </ion-item>
+                }
+              }
+            </ion-list>
+
+          }
+
+        </div>
+      </div>
+    </div>
+
+  }
+</ion-content>

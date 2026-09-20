@@ -1,0 +1,14 @@
+
+.empty-icon {
+  font-size: 3rem;
+  color: var(--ion-color-medium);
+}
+
+.video-hint {
+  font-size: 0.75rem;
+  color: var(--ion-color-primary);
+}
+
+ion-list {
+  background: transparent;
+}

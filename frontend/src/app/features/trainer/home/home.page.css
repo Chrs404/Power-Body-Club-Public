@@ -1,0 +1,114 @@
+.toolbar-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-inline-start: 12px;
+}
+
+.page-intro .eyebrow {
+  font-family: var(--pbc-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  color: var(--ion-color-secondary);
+}
+
+.page-intro h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.stat-card {
+  cursor: pointer;
+}
+
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 0.72rem;
+  color: var(--ion-color-medium);
+}
+
+/*
+ * Riquadro delle scadenze in Home. Ha due varianti: neutra quando non
+ * c'e' nulla da segnalare (rassicura senza sembrare un avviso), ocra
+ * quando invece c'e' qualcosa da rinnovare.
+ */
+.scadenze-card {
+  cursor: pointer;
+  height: 100%;
+  background: color-mix(in srgb, var(--ion-color-medium) 8%, var(--ion-card-background));
+}
+
+.scadenze-card.urgente {
+  background: color-mix(in srgb, var(--ion-color-warning) 16%, var(--ion-card-background));
+}
+
+.scadenze-card ion-card-content {
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+
+.scadenze-riga {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.scadenze-riga ion-icon {
+  font-size: 1.5rem;
+  color: var(--ion-color-medium);
+  flex: 0 0 auto;
+}
+
+.scadenze-card.urgente .scadenze-riga ion-icon {
+  color: var(--ion-color-warning-shade);
+}
+
+.scadenze-testo strong {
+  font-size: 0.95rem;
+  line-height: 1.2;
+}
+
+.scadenze-testo p {
+  font-size: 0.78rem;
+  color: var(--ion-color-medium);
+}
+
+.sezione-titolo {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ion-color-medium);
+  margin-bottom: 0.5rem;
+}
+
+.azione {
+  cursor: pointer;
+  height: 100%;
+}
+
+.azione ion-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 1.1rem 0.6rem;
+  text-align: center;
+}
+
+.azione ion-icon {
+  font-size: 1.7rem;
+  color: var(--ion-color-primary);
+}
+
+.azione span {
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.2;
+}

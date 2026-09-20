@@ -1,0 +1,247 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Palestra</ion-title>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-segment [value]="sezione()"
+      (ionChange)="onSezioneChange($any($event).detail.value)">
+      <ion-segment-button value="news">
+        <ion-label>Comunicazioni</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="orari">
+        <ion-label>Orari</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="chiusure">
+        <ion-label>Chiusure</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding pbc-con-fab">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+  } @else if (sezione() === 'news') {
+
+    @if (news().length === 0) {
+      <div class="pbc-empty">
+        <ion-icon name="megaphone-outline"></ion-icon>
+        <p class="mt-3 mb-0">Nessuna comunicazione. Creane una con il pulsante +.</p>
+      </div>
+    } @else {
+      <ion-list>
+        @for (n of news(); track n.id) {
+          <ion-item>
+            <ion-label>
+              <h2>
+                {{ n.title }}
+                @if (n.isPublished === false) {
+                  <ion-badge color="medium" class="ms-2">bozza</ion-badge>
+                }
+              </h2>
+              <p>{{ n.content }}</p>
+              <ion-note>{{ n.publishedAt | date: 'dd/MM/yyyy' }}</ion-note>
+            </ion-label>
+            <ion-button slot="end" fill="clear" (click)="openEditNews(n)">
+              <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-button slot="end" fill="clear" color="danger"
+              (click)="confirmDeleteNews(n)">
+              <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-item>
+        }
+      </ion-list>
+    }
+
+    <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+      <ion-fab-button (click)="openCreateNews()">
+        <ion-icon name="add"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
+
+  } @else if (sezione() === 'orari') {
+
+    @for (day of schedule(); track day.dayOfWeek; let dayIndex = $index) {
+      <div class="day-card mb-2">
+        <ion-item lines="none">
+          <ion-toggle [checked]="isOpen(day)"
+            (ionChange)="toggleDay(dayIndex, $any($event).detail.checked)">
+            <strong>{{ dayLabels[day.dayOfWeek] }}</strong>
+          </ion-toggle>
+        </ion-item>
+
+        @if (day.slots.length === 0) {
+          <p class="closed-text px-3 pb-2 mb-0">Chiuso</p>
+        } @else {
+          @for (slot of day.slots; track $index; let slotIndex = $index) {
+            <div class="slot-row px-3 pb-2">
+              <ion-input class="time-input" type="time" [value]="slot.openTime"
+                (ionInput)="updateSlot(dayIndex, slotIndex, 'openTime', $any($event.target).value)"
+              ></ion-input>
+              <span class="dash">—</span>
+              <ion-input class="time-input" type="time" [value]="slot.closeTime"
+                (ionInput)="updateSlot(dayIndex, slotIndex, 'closeTime', $any($event.target).value)"
+              ></ion-input>
+              <ion-button fill="clear" color="danger" size="small"
+                (click)="removeSlot(dayIndex, slotIndex)">
+                <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+          }
+
+          @if (day.slots.length < 3) {
+            <ion-button fill="clear" size="small" class="ms-2 mb-1"
+              (click)="addSlot(dayIndex)">
+              <ion-icon name="add" slot="start"></ion-icon>
+              Aggiungi fascia
+            </ion-button>
+          }
+        }
+      </div>
+    }
+
+    <ion-note class="d-block text-center mt-2 mb-3">
+      Più fasce nello stesso giorno permettono la pausa pranzo.
+    </ion-note>
+
+    <ion-button expand="block" class="mb-4" [disabled]="saving()"
+      (click)="saveSchedule()">
+      @if (saving()) {
+        <ion-spinner name="crescent"></ion-spinner>
+      } @else {
+        <ion-icon name="save-outline" slot="start"></ion-icon>
+        Salva orari
+      }
+    </ion-button>
+
+  } @else {
+
+    @if (closures().length === 0) {
+      <div class="pbc-empty">
+        <ion-icon name="calendar-outline"></ion-icon>
+        <p class="mt-3 mb-0">Nessuna chiusura registrata.</p>
+      </div>
+    } @else {
+      <ion-list>
+        @for (c of closures(); track c.id) {
+          <ion-item>
+            <ion-label>
+              <h2>
+                {{ c.startDate | date: 'dd/MM/yyyy' }}
+                @if (c.startDate !== c.endDate) {
+                  — {{ c.endDate | date: 'dd/MM/yyyy' }}
+                }
+              </h2>
+              <p>{{ c.reason }}</p>
+            </ion-label>
+            <ion-button slot="end" fill="clear" color="danger"
+              (click)="confirmDeleteClosure(c)">
+              <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-item>
+        }
+      </ion-list>
+    }
+
+    <ion-button expand="block" class="mt-3 mb-4" (click)="openClosureModal()">
+      <ion-icon name="add" slot="start"></ion-icon>
+      Nuova chiusura
+    </ion-button>
+
+  }
+
+  <!-- Comunicazione -->
+  <ion-modal [isOpen]="newsModalOpen()" (didDismiss)="newsModalOpen.set(false)">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>{{ editingId() ? 'Modifica' : 'Nuova comunicazione' }}</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="newsModalOpen.set(false)">Chiudi</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <form [formGroup]="newsForm" (ngSubmit)="saveNews()">
+          <ion-list>
+            <ion-item>
+              <ion-input label="Titolo *" labelPlacement="floating"
+                formControlName="title"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-textarea label="Testo *" labelPlacement="floating"
+                formControlName="content" [autoGrow]="true" rows="5"></ion-textarea>
+            </ion-item>
+            <ion-item>
+              <ion-input label="Link immagine" labelPlacement="floating"
+                formControlName="imageUrl" autocapitalize="off"
+                placeholder="https://..."></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-toggle formControlName="isPublished">Visibile ai clienti</ion-toggle>
+            </ion-item>
+          </ion-list>
+
+          <ion-note class="d-block px-2 mt-1">
+            Disattivando la visibilità la comunicazione resta salvata come bozza.
+          </ion-note>
+
+          @if (errorMessage()) {
+            <div class="alert alert-danger py-2 px-3 mt-3">{{ errorMessage() }}</div>
+          }
+
+          <ion-button expand="block" type="submit" class="mt-3" [disabled]="saving()">
+            @if (saving()) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              Salva
+            }
+          </ion-button>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+
+  <!-- Chiusura -->
+  <ion-modal [isOpen]="closureModalOpen()" (didDismiss)="closureModalOpen.set(false)">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Nuova chiusura</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closureModalOpen.set(false)">Chiudi</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        <ion-list>
+          <ion-item>
+            <ion-input label="Dal" labelPlacement="stacked" type="date"
+              [(ngModel)]="closureStart"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Al" labelPlacement="stacked" type="date"
+              [(ngModel)]="closureEnd"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-input label="Motivo *" labelPlacement="floating"
+              [(ngModel)]="closureReason" placeholder="es. Ferie estive"></ion-input>
+          </ion-item>
+        </ion-list>
+
+        <ion-note class="d-block px-2 mt-1">
+          Per un solo giorno indica la stessa data in entrambi i campi.
+        </ion-note>
+
+        <ion-button expand="block" class="mt-3" (click)="saveClosure()">Salva</ion-button>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

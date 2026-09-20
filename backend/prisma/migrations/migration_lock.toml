@@ -1,0 +1,2 @@
+# Non modificare a mano. Indica il database usato dalle migrazioni.
+provider = "postgresql"

@@ -1,0 +1,117 @@
+<ion-header>
+  <ion-toolbar>
+    <img src="logo-small.png" alt="" class="toolbar-logo" slot="start" />
+    <ion-title>Power Body Club</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-8 col-lg-6">
+
+        <div class="page-intro mb-3">
+          <p class="eyebrow mb-0">Area istruttore</p>
+          <h2 class="mb-0">Ciao {{ user()?.firstName }}</h2>
+        </div>
+
+        @if (loading()) {
+          <div class="d-flex justify-content-center py-4">
+            <ion-spinner name="crescent"></ion-spinner>
+          </div>
+        } @else {
+          <div class="row g-2 mb-3">
+            <div class="col-4">
+              <ion-card class="stat-card m-0" routerLink="/istruttore/clienti">
+                <ion-card-content class="text-center">
+                  <div class="stat-value">{{ summary()?.active ?? '—' }}</div>
+                  <div class="stat-label">Attivi</div>
+                </ion-card-content>
+              </ion-card>
+            </div>
+
+            <div class="col-8">
+              <!--
+                Un solo riquadro per entrambe le categorie: prima
+                abbonamenti e schede vivevano su schermate separate,
+                e le schede non comparivano da nessuna parte come
+                scadenza. Sono unificate nella pagina Clienti, che
+                mostra lo stato di tutti senza limitarsi a chi e'
+                prossimo alla scadenza.
+              -->
+              <ion-card
+                class="stat-card scadenze-card m-0"
+                [class.urgente]="totaleScadenze > 0"
+                routerLink="/istruttore/clienti"
+              >
+                <ion-card-content>
+                  <div class="scadenze-riga">
+                    <ion-icon
+                      [name]="totaleScadenze > 0 ? 'alert-circle-outline' : 'calendar-outline'"
+                    ></ion-icon>
+                    <div class="scadenze-testo">
+                      @if (totaleScadenze > 0) {
+                        <strong>
+                          {{ totaleScadenze }}
+                          {{ totaleScadenze === 1 ? 'scadenza' : 'scadenze' }}
+                          @if (totaleScaduti > 0) {
+                            , {{ totaleScaduti }} già scadut{{ totaleScaduti === 1 ? 'a' : 'e' }}
+                          }
+                        </strong>
+                        <p class="mb-0">Abbonamenti e schede, nei prossimi 30 giorni.</p>
+                      } @else {
+                        <strong>Tutto in regola</strong>
+                        <p class="mb-0">Nessuna scadenza nei prossimi 30 giorni.</p>
+                      }
+                    </div>
+                  </div>
+                </ion-card-content>
+              </ion-card>
+            </div>
+          </div>
+        }
+
+        <h3 class="sezione-titolo">Azioni rapide</h3>
+        <div class="row g-2 mb-3">
+          <div class="col-6">
+            <ion-card class="azione m-0" routerLink="/istruttore/clienti/nuovo">
+              <ion-card-content>
+                <ion-icon name="person-add-outline"></ion-icon>
+                <span>Nuovo cliente</span>
+              </ion-card-content>
+            </ion-card>
+          </div>
+          <div class="col-6">
+            <ion-card class="azione m-0" routerLink="/istruttore/schede-rapide">
+              <ion-card-content>
+                <ion-icon name="layers-outline"></ion-icon>
+                <span>Schede rapide</span>
+              </ion-card-content>
+            </ion-card>
+          </div>
+          <div class="col-6">
+            <ion-card class="azione m-0" routerLink="/istruttore/palestra">
+              <ion-card-content>
+                <ion-icon name="megaphone-outline"></ion-icon>
+                <span>Comunicazioni</span>
+              </ion-card-content>
+            </ion-card>
+          </div>
+          <div class="col-6">
+            <ion-card class="azione m-0" routerLink="/istruttore/palestra">
+              <ion-card-content>
+                <ion-icon name="time-outline"></ion-icon>
+                <span>Orari e chiusure</span>
+              </ion-card-content>
+            </ion-card>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</ion-content>

@@ -1,0 +1,223 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/istruttore/clienti"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Schede</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="pbc-con-fab">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="alert alert-danger m-3">{{ errorMessage() }}</div>
+  } @else {
+    <p class="text-muted px-3 pt-3 mb-2">{{ clientName() }}</p>
+
+    @if (workouts().length === 0) {
+      <div class="text-center py-5 px-4">
+        <ion-icon name="document-text-outline" class="empty-icon"></ion-icon>
+        <p class="text-muted mt-3 mb-0">
+          Nessuna scheda assegnata. Creane una con il pulsante +.
+        </p>
+      </div>
+    } @else {
+      <ion-list>
+        @for (w of workouts(); track w.id) {
+          <ion-item>
+            <ion-label>
+              <h2>
+                {{ w.name }}
+                @if (w.status === 'ACTIVE') {
+                  <ion-badge color="success" class="ms-2">attiva</ion-badge>
+                }
+              </h2>
+              <p>
+                {{ w.startDate | date: 'dd/MM/yyyy' }}
+                @if (w.endDate) {
+                  — {{ w.endDate | date: 'dd/MM/yyyy' }}
+                }
+              </p>
+              @if (w._count) {
+                <ion-note>{{ w._count.days }} giorni</ion-note>
+              }
+            </ion-label>
+            <ion-button slot="end" fill="clear" (click)="scaricaPdf(w)"
+              [disabled]="scaricando() === w.id" aria-label="Scarica PDF">
+              @if (scaricando() === w.id) {
+                <ion-spinner name="crescent"></ion-spinner>
+              } @else {
+                <ion-icon name="download-outline" slot="icon-only"></ion-icon>
+              }
+            </ion-button>
+            <ion-button slot="end" fill="clear" (click)="edit(w)"
+              aria-label="Modifica">
+              <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-button slot="end" fill="clear" color="danger" (click)="confirmDelete(w)">
+              <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-item>
+        }
+      </ion-list>
+
+      <p class="text-muted small px-3 pt-2">
+        Vengono mostrate le ultime 10 schede. Le schede archiviate restano
+        consultabili dal cliente.
+      </p>
+    }
+  }
+
+  @if (!loading() && !errorMessage()) {
+    <div class="px-3 pb-3">
+      <ion-button expand="block" fill="outline" (click)="apriModelli()">
+        <ion-icon name="layers-outline" slot="start"></ion-icon>
+        Assegna una scheda rapida
+      </ion-button>
+    </div>
+  }
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab-button (click)="createNew()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+  <ion-modal #modelliModal [isOpen]="modelliModalOpen()"
+    (didDismiss)="modelliModalOpen.set(false)">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>
+            {{ modelloScelto() ? 'Conferma assegnazione' : 'Scegli una scheda rapida' }}
+          </ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="modelliModalOpen.set(false)">Chiudi</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+
+        @if (modelloScelto(); as m) {
+          <p class="mb-1"><strong>{{ m.name }}</strong></p>
+          <ion-note class="d-block mb-3">
+            {{ m._count.days }} giorni · {{ totaleEsercizi(m) }} esercizi
+          </ion-note>
+
+          <!--
+            Anteprima del contenuto: senza, la scelta si basava solo sul
+            nome del modello e bisognava ricordarsi a memoria cosa
+            contenesse.
+          -->
+          @if (caricandoDettaglio()) {
+            <div class="d-flex justify-content-center py-3">
+              <ion-spinner name="crescent"></ion-spinner>
+            </div>
+          } @else if (dettaglioModello(); as d) {
+            <ion-accordion-group class="mb-3">
+              @for (giorno of d.days; track giorno.id) {
+                <ion-accordion [value]="giorno.id">
+                  <ion-item slot="header">
+                    <ion-label>
+                      <h3>{{ giorno.label }}</h3>
+                      <p>{{ giorno.exercises.length }} esercizi</p>
+                    </ion-label>
+                  </ion-item>
+                  <div slot="content">
+                    <ion-list>
+                      @for (ex of giorno.exercises; track ex.id) {
+                        <ion-item>
+                          <ion-label>
+                            <h3>
+                              @if (ex.linkedToPrevious) {
+                                <ion-icon name="link-outline" class="me-1"></ion-icon>
+                              }
+                              {{ ex.exercise.name }}
+                            </h3>
+                            <p>{{ ex.sets }} × {{ ex.reps }}</p>
+                          </ion-label>
+                        </ion-item>
+                      }
+                    </ion-list>
+                  </div>
+                </ion-accordion>
+              }
+            </ion-accordion-group>
+          }
+
+          <ion-list>
+            <ion-item>
+              <ion-input label="Nome della scheda" labelPlacement="floating"
+                [(ngModel)]="nomeAssegnato"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-input label="Inizio" labelPlacement="stacked" type="date"
+                [(ngModel)]="inizioAssegnato"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-input label="Fine" labelPlacement="stacked" type="date"
+                [(ngModel)]="fineAssegnato"></ion-input>
+            </ion-item>
+          </ion-list>
+
+          <ion-note class="d-block px-2 mt-2">
+            Il modello resta disponibile per altri clienti: viene creata una copia.
+            L'eventuale scheda attiva precedente verrà archiviata.
+          </ion-note>
+
+          <ion-button expand="block" class="mt-3" [disabled]="assegnando()"
+            (click)="confermaAssegnazione()">
+            @if (assegnando()) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              Assegna così com'è
+            }
+          </ion-button>
+
+          <!--
+            Seconda via: apre il costruttore precompilato col contenuto
+            del modello, per adattarlo al cliente prima di salvarlo.
+            L'originale non viene toccato.
+          -->
+          <ion-button expand="block" fill="outline" [disabled]="assegnando()"
+            (click)="personalizzaPrimaDiAssegnare()">
+            <ion-icon name="create-outline" slot="start"></ion-icon>
+            Personalizza prima di assegnare
+          </ion-button>
+
+          <ion-button expand="block" fill="clear" (click)="modelloScelto.set(null)">
+            Scegli un'altra
+          </ion-button>
+
+        } @else if (templates().length === 0) {
+          <div class="pbc-empty">
+            <ion-icon name="layers-outline"></ion-icon>
+            <p class="mt-3 mb-0">
+              Nessuna scheda rapida disponibile.<br />
+              Creane una dalla sezione Schede rapide.
+            </p>
+          </div>
+        } @else {
+          <ion-list>
+            @for (t of templates(); track t.id) {
+              <ion-item button (click)="scegliModello(t)" [detail]="true">
+                <ion-label>
+                  <h2>{{ t.name }}</h2>
+                  <p>{{ t._count.days }} giorni · {{ totaleEsercizi(t) }} esercizi</p>
+                </ion-label>
+              </ion-item>
+            }
+          </ion-list>
+        }
+
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

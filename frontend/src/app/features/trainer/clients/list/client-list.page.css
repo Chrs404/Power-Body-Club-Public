@@ -1,0 +1,75 @@
+ion-list {
+  background: transparent;
+}
+
+ion-list-header {
+  min-height: 2rem;
+  padding-inline: 0.25rem;
+}
+
+/* --- Avatar --------------------------------------------------------------
+ * Una sola lettera, come nelle pagine di profilo: qui prima erano due
+ * (iniziali di nome e cognome), disallineate dal resto dell'app.
+ */
+.avatar {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--ion-color-medium);
+}
+
+/*
+ * Colori di urgenza verificati per contrasto (WCAG AA, 4.5:1 minimo):
+ * le tinte dirette del tema (warning-shade, secondary-shade) restavano
+ * sotto soglia come testo su sfondo bianco, e "urgente" / "in arrivo"
+ * erano troppo simili per distinguerle a colpo d'occhio. "In arrivo"
+ * usa il verde oliva del marchio: comunica "normale", lasciando rosso
+ * e ambra ai due livelli davvero urgenti.
+ */
+.avatar.scaduto {
+  background: var(--ion-color-danger);
+}
+
+.avatar.urgente {
+  background: #8d6c20;
+}
+
+.avatar.in-arrivo {
+  background: var(--ion-color-primary-shade);
+}
+
+.esito {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.esito ion-icon {
+  color: var(--ion-color-medium);
+  font-size: 1rem;
+}
+
+.badge-scadenza {
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ion-color-medium);
+}
+
+.badge-scadenza.scaduto {
+  color: var(--ion-color-danger);
+}
+
+.badge-scadenza.urgente {
+  color: #8d6c20;
+}
+
+.badge-scadenza.in-arrivo {
+  color: var(--ion-color-primary-shade);
+}

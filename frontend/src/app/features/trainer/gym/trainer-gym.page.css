@@ -1,0 +1,36 @@
+ion-list {
+  background: transparent;
+}
+
+ion-item p {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.day-card {
+  border: 1px solid var(--ion-color-light-shade);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.slot-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.time-input {
+  max-width: 110px;
+  --padding-start: 8px;
+}
+
+.dash {
+  color: var(--ion-color-medium);
+}
+
+.closed-text {
+  color: var(--ion-color-danger);
+  font-size: 0.9rem;
+}

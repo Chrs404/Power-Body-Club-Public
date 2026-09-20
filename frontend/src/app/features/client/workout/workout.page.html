@@ -1,0 +1,301 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>La mia scheda</ion-title>
+    @if (workout()) {
+      <ion-buttons slot="end">
+        <ion-button (click)="scaricaPdf()" [disabled]="scaricando()"
+          aria-label="Scarica PDF">
+          @if (scaricando()) {
+            <ion-spinner name="crescent"></ion-spinner>
+          } @else {
+            <ion-icon name="download-outline" slot="icon-only"></ion-icon>
+          }
+        </ion-button>
+      </ion-buttons>
+    }
+  </ion-toolbar>
+
+  @if (workout(); as w) {
+    @if (w.days.length > 1) {
+      <ion-toolbar>
+        <ion-segment
+          [value]="selectedDayIndex()"
+          (ionChange)="onDayChange($any($event).detail.value)"
+          scrollable="true"
+        >
+          @for (day of w.days; track day.id; let i = $index) {
+            <ion-segment-button [value]="i">
+              <ion-label>{{ day.label }}</ion-label>
+            </ion-segment-button>
+          }
+        </ion-segment>
+      </ion-toolbar>
+    }
+  }
+</ion-header>
+
+<ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="alert alert-danger m-3">{{ errorMessage() }}</div>
+  } @else if (!workout()) {
+    <div class="text-center py-5 px-4">
+      <ion-icon name="barbell-outline" class="empty-icon"></ion-icon>
+      <p class="text-muted mt-3 mb-0">
+        Non hai ancora una scheda assegnata.<br />
+        Chiedi al tuo istruttore.
+      </p>
+    </div>
+  } @else if (workout(); as w) {
+    <div class="workout-head px-3 pt-3 pb-2">
+      <h2 class="mb-1">{{ w.name }}</h2>
+      <ion-note>
+        dal {{ w.startDate | date: 'dd/MM/yyyy' }}
+        @if (w.endDate) {
+          al {{ w.endDate | date: 'dd/MM/yyyy' }}
+        }
+      </ion-note>
+      @if (w.notes) {
+        <p class="workout-notes mt-2 mb-0">{{ w.notes }}</p>
+      }
+    </div>
+
+    @if (celebrazione()) {
+      <div class="celebrazione" (click)="chiudiCelebrazione()">
+        <div class="celebrazione-cerchio">
+          <ion-icon name="checkmark-circle"></ion-icon>
+        </div>
+        <h2>Allenamento completato</h2>
+        <p>Salvato nello storico.</p>
+        <ion-note>Tocca per continuare</ion-note>
+      </div>
+    }
+
+    @if (currentDay; as day) {
+      @if (day.exercises.length > 0) {
+        <div class="progress-bar-wrap px-3 pb-2">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="progress-text">
+              {{ dayCompletedCount }} di {{ dayTotalCount }} completati
+            </span>
+            <ion-button fill="clear" size="small" (click)="confirmReset()">
+              <ion-icon name="refresh-outline" slot="start"></ion-icon>
+              Ricomincia
+            </ion-button>
+          </div>
+          <ion-progress-bar
+            [value]="dayProgress"
+            [color]="dayProgress === 1 ? 'success' : 'primary'"
+          ></ion-progress-bar>
+        </div>
+      }
+    }
+
+    @if (currentDay; as day) {
+      @if (blocchi.length === 0) {
+        <p class="text-muted text-center py-4">
+          Nessun esercizio per questo giorno.
+        </p>
+      } @else {
+        <ion-accordion-group [multiple]="true">
+          @for (blocco of blocchi; track blocco.capogruppo.id; let i = $index) {
+            <ion-accordion [value]="blocco.capogruppo.id">
+
+              <ion-item slot="header" [class.completed]="bloccoCompletato(blocco)">
+                <ion-checkbox
+                  slot="start"
+                  [checked]="bloccoCompletato(blocco)"
+                  [disabled]="busyExerciseId() === blocco.capogruppo.id || celebrazione()"
+                  (click)="$event.stopPropagation(); toggleBlocco(blocco)"
+                ></ion-checkbox>
+
+                <ion-label>
+                  @if (blocco.superset) {
+                    <div class="superset-etichetta">
+                      Superset {{ blocco.sigla }}
+                    </div>
+                    @for (ex of blocco.esercizi; track ex.id; let j = $index) {
+                      <h2 [class.done]="bloccoCompletato(blocco)">
+                        <span class="exercise-index">{{ blocco.sigla }}{{ j + 1 }}</span>
+                        {{ ex.exercise.name }}
+                      </h2>
+                      <p class="exercise-params">
+                        {{ ex.reps }} ripetizioni
+                        @if (formatWeight(ex.suggestedWeight); as weight) {
+                          · {{ weight }}
+                        }
+                      </p>
+                    }
+                  } @else {
+                    <h2 [class.done]="bloccoCompletato(blocco)">
+                      <span class="exercise-index">{{ i + 1 }}.</span>
+                      {{ blocco.capogruppo.exercise.name }}
+                    </h2>
+                    <p class="exercise-params">
+                      {{ blocco.capogruppo.sets }} × {{ blocco.capogruppo.reps }}
+                      @if (formatWeight(blocco.capogruppo.suggestedWeight); as weight) {
+                        · {{ weight }}
+                      }
+                    </p>
+                    @if (weightInfo(blocco.capogruppo.exerciseId); as info) {
+                      <p class="last-weight">
+                        <ion-icon name="trending-up-outline"></ion-icon>
+                        ultimo: {{ info.lastWeight }} kg
+                        @if (formatDelta(info.delta); as d) {
+                          <span [class.up]="info.delta! > 0" [class.down]="info.delta! < 0">
+                            {{ d }}
+                          </span>
+                        }
+                      </p>
+                    }
+                  }
+                </ion-label>
+              </ion-item>
+
+              <div slot="content" class="exercise-detail">
+                @for (ex of blocco.esercizi; track ex.id) {
+                  <div class="esercizio-dettaglio">
+                    @if (blocco.superset) {
+                      <h3 class="dettaglio-titolo">{{ ex.exercise.name }}</h3>
+                    }
+
+                    <ion-chip outline="true" class="group-chip mb-2">
+                      {{ ex.exercise.muscleGroup | muscleGroup }}
+                    </ion-chip>
+
+                    <div class="params-grid">
+                      <div>
+                        <div class="param-label">{{ blocco.superset ? 'Giri' : 'Serie' }}</div>
+                        <div class="param-value">{{ blocco.capogruppo.sets }}</div>
+                      </div>
+                      <div>
+                        <div class="param-label">Recupero</div>
+                        <div class="param-value">
+                          {{ blocco.superset ? '—' : formatRest(ex.restSeconds) }}
+                        </div>
+                      </div>
+                      <div>
+                        <div class="param-label">Peso</div>
+                        <div class="param-value">
+                          {{ formatWeight(ex.suggestedWeight) || '—' }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <!--
+                      Le ripetizioni hanno una riga propria: sono testo
+                      libero e possono descrivere il tempo di esecuzione
+                      per esteso, che in un quarto di larghezza risulterebbe
+                      spezzettato su molte righe.
+                    -->
+                    <div class="param-reps">
+                      <div class="param-label">Ripetizioni</div>
+                      <div class="param-value">{{ ex.reps }}</div>
+                    </div>
+
+                    @if (ex.exercise.description) {
+                      <p class="exercise-description">{{ ex.exercise.description }}</p>
+                    }
+
+                    @if (ex.notes) {
+                      <div class="exercise-note">
+                        <strong>Nota:</strong> {{ ex.notes }}
+                      </div>
+                    }
+
+                    <div class="detail-actions">
+                      <ion-button fill="clear" size="small" (click)="openWeightModal(ex)">
+                        <ion-icon name="trending-up-outline" slot="start"></ion-icon>
+                        Registra peso
+                      </ion-button>
+
+                      @if (ex.exercise.videoUrl; as video) {
+                        <ion-button fill="clear" size="small" (click)="openVideo(video)">
+                          <ion-icon name="videocam-outline" slot="start"></ion-icon>
+                          Video
+                        </ion-button>
+                      }
+                    </div>
+                  </div>
+                }
+
+                <!--
+                  Un solo timer per blocco: nel superset il recupero
+                  si prende alla fine del giro, non fra un esercizio e l'altro.
+                -->
+                <div class="timer-blocco">
+                  <app-rest-timer
+                    [seconds]="blocco.capogruppo.restSeconds"
+                    [exerciseName]="blocco.superset
+                      ? 'Superset ' + blocco.sigla
+                      : blocco.capogruppo.exercise.name"
+                  ></app-rest-timer>
+                </div>
+              </div>
+
+            </ion-accordion>
+          }
+        </ion-accordion-group>
+
+      }
+    }
+  }
+
+  <ion-modal [isOpen]="weightModalOpen()" (didDismiss)="weightModalOpen.set(false)">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Registra peso</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="weightModalOpen.set(false)">Chiudi</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="ion-padding">
+        @if (weightTarget(); as target) {
+          <p class="fw-semibold mb-1">{{ target.exercise.name }}</p>
+          @if (weightInfo(target.exerciseId); as info) {
+            <ion-note class="d-block mb-3">
+              Ultimo registrato: {{ info.lastWeight }} kg
+              il {{ info.performedAt | date: 'dd/MM/yyyy' }}
+            </ion-note>
+          }
+
+          <ion-list>
+            <ion-item>
+              <ion-input
+                label="Peso (kg)" labelPlacement="floating" type="number"
+                inputmode="decimal" step="0.5" min="0"
+                [(ngModel)]="weightValue"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-input
+                label="Ripetizioni (facoltativo)" labelPlacement="floating"
+                type="number" inputmode="numeric" min="1"
+                [(ngModel)]="weightReps"
+              ></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-input
+                label="Note (facoltative)" labelPlacement="floating"
+                [(ngModel)]="weightNotes"
+              ></ion-input>
+            </ion-item>
+          </ion-list>
+
+          <ion-button expand="block" class="mt-3" (click)="saveWeight()">
+            Salva
+          </ion-button>
+        }
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content>

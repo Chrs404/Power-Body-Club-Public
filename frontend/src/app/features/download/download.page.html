@@ -1,0 +1,29 @@
+<ion-content class="ion-padding">
+  <div class="pagina">
+    <img src="logo.png" alt="" class="logo" />
+
+    <p class="occhiello">A.S.D. Power Body Club</p>
+    <h1>La tua scheda, sempre con te</h1>
+    <p class="sottotitolo">
+      Le credenziali te le fornisce l'istruttore.
+    </p>
+
+    <a class="scelta principale" [href]="apk" download>
+      <ion-icon name="logo-android"></ion-icon>
+      <span class="titolo">Installa su Android</span>
+      @if (dimensione(); as d) {
+        <span class="nota">{{ d }}</span>
+      }
+    </a>
+
+    <ion-button expand="block" fill="outline" routerLink="/login" class="alternativa">
+      <ion-icon name="globe-outline" slot="start"></ion-icon>
+      Continua nel browser
+    </ion-button>
+
+    <p class="chiusura">
+      Su iPhone usa il browser: puoi aggiungere l'app alla schermata Home
+      dal menu Condividi di Safari.
+    </p>
+  </div>
+</ion-content>

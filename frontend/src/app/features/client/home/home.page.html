@@ -1,0 +1,125 @@
+<ion-header>
+  <ion-toolbar>
+    <img src="logo-small.png" alt="" class="toolbar-logo" slot="start" />
+    <ion-title>Power Body Club</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="alert alert-danger">{{ errorMessage() }}</div>
+  } @else if (data(); as d) {
+    <div class="page-intro mb-3">
+      <p class="eyebrow mb-0">Bentornato</p>
+      <h2 class="greeting mb-0">Ciao {{ d.user.firstName }}</h2>
+    </div>
+
+    <!-- Abbonamento -->
+    <ion-card class="mb-3">
+      <ion-card-content>
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <ion-card-subtitle>Abbonamento</ion-card-subtitle>
+            @if (d.subscription) {
+              <div class="fw-semibold">
+                {{ d.subscription.plan || 'Attivo' }}
+              </div>
+              <ion-note>
+                fino al {{ d.subscription.endDate | date: 'dd/MM/yyyy' }}
+              </ion-note>
+            } @else {
+              <div class="text-muted">Nessun abbonamento registrato</div>
+            }
+          </div>
+          <ion-badge [color]="subscriptionColor(d.subscription?.daysLeft ?? null)">
+            {{ subscriptionText(d.subscription?.daysLeft ?? null) }}
+          </ion-badge>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Scheda attiva -->
+    <ion-card class="mb-3">
+      <ion-card-header>
+        <ion-card-title>
+          <ion-icon name="barbell-outline"></ion-icon>
+          Scheda attuale
+        </ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        @if (d.activeWorkout; as w) {
+          <div class="fw-semibold mb-1">{{ w.name }}</div>
+          <ion-note class="d-block mb-3">
+            {{ w._count.days }} giorni ·
+            dal {{ w.startDate | date: 'dd/MM/yyyy' }}
+            @if (w.endDate) {
+              al {{ w.endDate | date: 'dd/MM/yyyy' }}
+            }
+          </ion-note>
+          <ion-button expand="block" size="small" (click)="openWorkout()">
+            Apri la scheda
+          </ion-button>
+        } @else {
+          <p class="text-muted mb-0">
+            Nessuna scheda assegnata. Chiedi al tuo istruttore.
+          </p>
+        }
+      </ion-card-content>
+    </ion-card>
+
+    <!-- Ultima comunicazione -->
+    @if (d.latestNews; as n) {
+      <ion-card class="mb-3">
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="megaphone-outline"></ion-icon>
+            Ultima comunicazione
+          </ion-card-title>
+          <ion-card-subtitle>
+            {{ n.publishedAt | date: 'dd/MM/yyyy' }}
+          </ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="fw-semibold mb-1">{{ n.title }}</div>
+          <p class="news-preview mb-2">{{ n.content }}</p>
+          <ion-button fill="clear" size="small" (click)="openGym()">
+            Tutte le comunicazioni
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+    }
+
+    <!-- Chiusure -->
+    @if (d.upcomingClosures.length > 0) {
+      <ion-card class="mb-3">
+        <ion-card-header>
+          <ion-card-title>
+            <ion-icon name="alert-circle-outline"></ion-icon>
+            Prossime chiusure
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          @for (c of d.upcomingClosures; track c.id) {
+            <div class="closure-row">
+              <div class="fw-semibold">
+                {{ c.startDate | date: 'dd/MM' }}
+                @if (c.startDate !== c.endDate) {
+                  — {{ c.endDate | date: 'dd/MM' }}
+                }
+              </div>
+              <ion-note>{{ c.reason }}</ion-note>
+            </div>
+          }
+        </ion-card-content>
+      </ion-card>
+    }
+  }
+</ion-content>

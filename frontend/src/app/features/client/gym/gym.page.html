@@ -1,0 +1,97 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Palestra</ion-title>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-segment [value]="tab()" (ionChange)="onTabChange($any($event).detail.value)">
+      <ion-segment-button value="news">
+        <ion-label>Comunicazioni</ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="orari">
+        <ion-label>Orari</ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="alert alert-danger">{{ errorMessage() }}</div>
+  } @else if (tab() === 'news') {
+
+    @if (news().length === 0) {
+      <div class="text-center py-5">
+        <ion-icon name="megaphone-outline" class="empty-icon"></ion-icon>
+        <p class="text-muted mt-3 mb-0">Nessuna comunicazione al momento.</p>
+      </div>
+    } @else {
+      @for (n of news(); track n.id) {
+        <ion-card class="mb-3">
+          <ion-card-header>
+            <ion-card-title>{{ n.title }}</ion-card-title>
+            <ion-card-subtitle>
+              {{ n.publishedAt | date: 'dd/MM/yyyy' }}
+            </ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            @if (n.imageUrl) {
+              <img [src]="n.imageUrl" [alt]="n.title" class="news-image mb-2" />
+            }
+            <p class="news-content mb-0">{{ n.content }}</p>
+          </ion-card-content>
+        </ion-card>
+      }
+    }
+
+  } @else {
+
+    <ion-list class="mb-4">
+      @for (day of schedule(); track day.dayOfWeek) {
+        <ion-item [class.today]="isToday(day.dayOfWeek)">
+          <ion-label>
+            <h2>{{ dayLabels[day.dayOfWeek] }}</h2>
+          </ion-label>
+          <div slot="end" class="slots">
+            @if (day.slots.length === 0) {
+              <ion-note color="danger">Chiuso</ion-note>
+            } @else {
+              @for (slot of day.slots; track $index) {
+                <div class="slot">{{ slot.openTime }} - {{ slot.closeTime }}</div>
+              }
+            }
+          </div>
+        </ion-item>
+      }
+    </ion-list>
+
+    <h3 class="h6 mb-2">Chiusure straordinarie</h3>
+    @if (closures().length === 0) {
+      <p class="text-muted small">Nessuna chiusura programmata.</p>
+    } @else {
+      <ion-list>
+        @for (c of closures(); track c.id) {
+          <ion-item>
+            <ion-label>
+              <h3>
+                {{ c.startDate | date: 'dd/MM/yyyy' }}
+                @if (c.startDate !== c.endDate) {
+                  — {{ c.endDate | date: 'dd/MM/yyyy' }}
+                }
+              </h3>
+              <p>{{ c.reason }}</p>
+            </ion-label>
+          </ion-item>
+        }
+      </ion-list>
+    }
+
+  }
+</ion-content>

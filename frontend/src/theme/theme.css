@@ -1,0 +1,463 @@
+/*
+ * Power Body Club — tema
+ *
+ * Palette estratta direttamente dal logo:
+ *   crema/pergamena  #E9D4B5   fondo del badge
+ *   carbone          #2C2C24   contorni e lettering
+ *   oliva            #5E6544   campo interno del badge
+ *   ocra             #C0894F   pelle e dettagli in cuoio
+ *   cuoio            #7A6248   ombreggiature
+ *
+ * Impostazione: superfici chiare e calde, barre in carbone,
+ * azioni in oliva, accenti in ocra. Niente bianco puro:
+ * stona con la pergamena del logo.
+ */
+
+:root {
+  /* --- Colori di marca --- */
+  --pbc-cream: #e9d4b5;
+  --pbc-cream-light: #f6efe2;
+  --pbc-charcoal: #2c2c24;
+  --pbc-olive: #5e6544;
+  --pbc-ochre: #c0894f;
+  --pbc-leather: #7a6248;
+
+  /* --- Primario: oliva --- */
+  --ion-color-primary: #5e6544;
+  --ion-color-primary-rgb: 94, 101, 68;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #53593c;
+  --ion-color-primary-tint: #6e7456;
+
+  /* --- Secondario: ocra --- */
+  --ion-color-secondary: #c0894f;
+  --ion-color-secondary-rgb: 192, 137, 79;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #a97846;
+  --ion-color-secondary-tint: #c69561;
+
+  /* --- Terziario: carbone --- */
+  --ion-color-tertiary: #2c2c24;
+  --ion-color-tertiary-rgb: 44, 44, 36;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #272720;
+  --ion-color-tertiary-tint: #41413a;
+
+  /* --- Stati, riportati sulla stessa famiglia calda --- */
+  --ion-color-success: #5b8c51;
+  --ion-color-success-rgb: 91, 140, 81;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #507b47;
+  --ion-color-success-tint: #6b9862;
+
+  --ion-color-warning: #c99a2e;
+  --ion-color-warning-rgb: 201, 154, 46;
+  --ion-color-warning-contrast: #2c2c24;
+  --ion-color-warning-contrast-rgb: 44, 44, 36;
+  --ion-color-warning-shade: #b18829;
+  --ion-color-warning-tint: #cea443;
+
+  --ion-color-danger: #a8432f;
+  --ion-color-danger-rgb: 168, 67, 47;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #943b29;
+  --ion-color-danger-tint: #b15644;
+
+  /* Grigio caldo scurito rispetto al valore iniziale (#8a8175):
+     quello si fermava a 3.8:1 su bianco, sotto la soglia AA per il testo
+     normale. Viene usato per note, sottotitoli e testo secondario,
+     che sono proprio le parti piu' piccole. */
+  --ion-color-medium: #766d61;
+  --ion-color-medium-rgb: 118, 109, 97;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #686055;
+  --ion-color-medium-tint: #847c71;
+
+  --ion-color-light: #efe8dc;
+  --ion-color-light-rgb: 239, 232, 220;
+  --ion-color-light-contrast: #2c2c24;
+  --ion-color-light-contrast-rgb: 44, 44, 36;
+  --ion-color-light-shade: #d2ccc2;
+  --ion-color-light-tint: #f1eae0;
+
+  --ion-color-dark: #2c2c24;
+  --ion-color-dark-rgb: 44, 44, 36;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #272720;
+  --ion-color-dark-tint: #41413a;
+
+  /* --- Superfici --- */
+  --ion-background-color: #faf6ee;
+  --ion-background-color-rgb: 250, 246, 238;
+  --ion-text-color: #2c2c24;
+  --ion-text-color-rgb: 44, 44, 36;
+
+  --ion-item-background: #ffffff;
+  --ion-card-background: #ffffff;
+  --ion-toolbar-background: #2c2c24;
+  --ion-toolbar-color: #f6efe2;
+  --ion-tab-bar-background: #ffffff;
+
+  /* --- Scala intermedia ---
+     Ionic la usa per titoli delle card, note, sottotitoli e segnaposto:
+     ion-card-title, ad esempio, e' definito come
+     var(--ion-color-step-850, #262626).
+     Va ridefinita insieme a sfondo e testo, altrimenti i componenti
+     ricadono sui valori predefiniti chiari e spariscono sul fondo scuro.
+     Valori ottenuti miscelando sfondo e testo dal 5% al 95%. */
+  --ion-color-step-50: #f0ece4;
+  --ion-color-step-100: #e5e2da;
+  --ion-color-step-150: #dbd8d0;
+  --ion-color-step-200: #d1cec6;
+  --ion-color-step-250: #c6c4bc;
+  --ion-color-step-300: #bcb9b1;
+  --ion-color-step-350: #b2afa7;
+  --ion-color-step-400: #a8a59d;
+  --ion-color-step-450: #9d9b93;
+  --ion-color-step-500: #939189;
+  --ion-color-step-550: #89877f;
+  --ion-color-step-600: #7e7d75;
+  --ion-color-step-650: #74736b;
+  --ion-color-step-700: #6a6961;
+  --ion-color-step-750: #605e56;
+  --ion-color-step-800: #55544c;
+  --ion-color-step-850: #4b4a42;
+  --ion-color-step-900: #414038;
+  --ion-color-step-950: #36362e;
+
+  /* --- Tipografia --- */
+  --ion-font-family: 'Barlow', system-ui, -apple-system, sans-serif;
+  --pbc-font-display: 'Barlow Condensed', 'Barlow', sans-serif;
+
+  /* --- Forme --- */
+  --pbc-radius: 12px;
+  --pbc-radius-sm: 8px;
+}
+
+/* ---------------------------------------------------------------------------
+   Modalita' scura: pergamena su carbone invece che il contrario.
+   --------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-background-color: #1a1a16;
+    --ion-background-color-rgb: 26, 26, 22;
+    --ion-text-color: #ece5d7;
+    --ion-text-color-rgb: 236, 229, 215;
+
+    --ion-item-background: #24241e;
+    --ion-card-background: #24241e;
+    --ion-toolbar-background: #24241e;
+    --ion-toolbar-color: #ece5d7;
+    --ion-tab-bar-background: #24241e;
+
+    --ion-color-primary: #8b9464;
+    --ion-color-primary-rgb: 139, 148, 100;
+    --ion-color-primary-shade: #7a8258;
+    --ion-color-primary-tint: #97a074;
+
+    --ion-color-light: #2f2f27;
+    --ion-color-light-rgb: 47, 47, 39;
+    --ion-color-light-contrast: #ece5d7;
+    --ion-color-light-shade: #3b3b32;
+    --ion-color-light-tint: #45453c;
+
+    --ion-color-step-50: #242420;
+    --ion-color-step-100: #2f2e29;
+    --ion-color-step-150: #3a3833;
+    --ion-color-step-200: #44433d;
+    --ion-color-step-250: #4e4d46;
+    --ion-color-step-300: #595750;
+    --ion-color-step-350: #64615a;
+    --ion-color-step-400: #6e6b63;
+    --ion-color-step-450: #78756d;
+    --ion-color-step-500: #838076;
+    --ion-color-step-550: #8e8a80;
+    --ion-color-step-600: #98948a;
+    --ion-color-step-650: #a29e93;
+    --ion-color-step-700: #ada89d;
+    --ion-color-step-750: #b8b2a7;
+    --ion-color-step-800: #c2bcb0;
+    --ion-color-step-850: #ccc7ba;
+    --ion-color-step-900: #d7d1c4;
+    --ion-color-step-950: #e2dbcd;
+
+    --ion-color-medium: #9a9284;
+    --ion-color-medium-rgb: 154, 146, 132;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Tipografia: condensata per i titoli, come il lettering del badge.
+   --------------------------------------------------------------------------- */
+h1, h2, h3,
+ion-title,
+ion-card-title,
+.pbc-display {
+  font-family: var(--pbc-font-display);
+  letter-spacing: 0.01em;
+}
+
+ion-title {
+  font-weight: 600;
+  font-size: 1.2rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+ion-list-header ion-label {
+  font-family: var(--pbc-font-display);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+}
+
+/* ---------------------------------------------------------------------------
+   Componenti
+   --------------------------------------------------------------------------- */
+
+ion-card-title {
+  /* Esplicito invece di affidarsi alla sola scala intermedia:
+     e' il testo piu' importante della card. */
+  color: var(--ion-text-color);
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+ion-card-subtitle {
+  color: var(--ion-color-medium);
+  letter-spacing: 0.06em;
+}
+
+ion-note {
+  /* Ionic userebbe step-600, che sul chiaro si ferma a 4.1:1.
+     ion-note compare ovunque (date, orari, suggerimenti): merita
+     lo stesso grigio verificato del testo secondario. */
+  color: var(--ion-color-medium);
+}
+
+ion-note[color] {
+  /* Le note con colore esplicito (es. stato abbonamento) restano tali */
+  color: inherit;
+}
+
+ion-card {
+  border-radius: var(--pbc-radius);
+  box-shadow: 0 1px 3px rgba(44, 44, 36, 0.08);
+  margin-inline: 0;
+}
+
+ion-button {
+  --border-radius: var(--pbc-radius-sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+
+ion-badge {
+  font-family: var(--pbc-font-display);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 4px;
+}
+
+ion-segment {
+  --background: var(--ion-color-light);
+}
+
+ion-segment-button {
+  --indicator-color: var(--ion-color-primary);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  min-height: 40px;
+}
+
+ion-item-divider {
+  --background: var(--ion-color-light);
+  --color: var(--ion-color-medium-shade);
+  font-family: var(--pbc-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.85rem;
+  min-height: 34px;
+}
+
+ion-tab-bar {
+  border-top: 1px solid var(--ion-color-light-shade);
+  height: 58px;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+ion-tab-button {
+  --color-selected: var(--ion-color-primary);
+}
+
+ion-tab-button ion-label {
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+}
+
+ion-fab-button {
+  --box-shadow: 0 3px 10px rgba(44, 44, 36, 0.25);
+}
+
+ion-searchbar {
+  --border-radius: var(--pbc-radius-sm) !important;
+  --box-shadow: none !important;
+  --background: var(--ion-color-light) !important;
+}
+
+ion-toolbar ion-searchbar {
+  padding-inline: 8px;
+}
+
+/* Bordi delle liste piu' discreti */
+ion-item {
+  --border-color: var(--ion-color-light-shade);
+}
+
+/* ---------------------------------------------------------------------------
+   Utilita' condivise
+   --------------------------------------------------------------------------- */
+
+/* Contenitore centrato: su schermi larghi l'app resta leggibile
+   invece di stiracchiarsi per tutta la finestra. */
+.pbc-container {
+  width: 100%;
+  max-width: 640px;
+  margin-inline: auto;
+}
+
+.pbc-empty {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--ion-color-medium);
+}
+
+.pbc-empty ion-icon {
+  font-size: 3rem;
+  opacity: 0.5;
+}
+
+/* Allineamento delle classi Bootstrap ai colori del tema */
+.text-muted {
+  color: var(--ion-color-medium) !important;
+}
+
+.alert {
+  border-radius: var(--pbc-radius-sm);
+  border: none;
+  font-size: 0.9rem;
+}
+
+.alert-danger {
+  background: rgba(168, 67, 47, 0.12);
+  color: var(--ion-color-danger-shade);
+}
+
+.alert-warning {
+  background: rgba(201, 154, 46, 0.15);
+  color: #8a6a1c;
+}
+
+.alert-success {
+  background: rgba(91, 140, 81, 0.14);
+  color: var(--ion-color-success-shade);
+}
+
+/* ---------------------------------------------------------------------------
+   Schermi larghi
+   L'app resta mobile-first: su desktop il contenuto viene centrato
+   e limitato in larghezza invece di stiracchiarsi da un bordo all'altro,
+   dove le righe diventerebbero illeggibili.
+   --------------------------------------------------------------------------- */
+/*
+ * Layout su schermi larghi.
+ *
+ * L'app e' pensata per il telefono, ma l'istruttore la usa anche da PC:
+ * senza vincoli il contenuto resta incollato a sinistra e le righe
+ * diventano lunghe quanto il monitor, faticose da leggere.
+ *
+ * Il selettore agisce su TUTTI i figli diretti di ion-content, non solo
+ * su liste e schede: molte pagine avvolgono il contenuto in un div, che
+ * con le regole precedenti restava fuori dal vincolo.
+ *
+ * Sono esclusi gli elementi posizionati dal sistema (pulsante flottante,
+ * indicatore di aggiornamento): centrarli li sposterebbe dal loro posto.
+ */
+@media (min-width: 768px) {
+  ion-content > *:not(ion-fab):not(ion-refresher):not(ion-infinite-scroll) {
+    max-width: 760px;
+    margin-inline: auto;
+  }
+
+  ion-toolbar ion-searchbar,
+  ion-toolbar ion-segment {
+    max-width: 760px;
+    margin-inline: auto;
+  }
+
+  /* La barra a schede resta a tutta larghezza: e' l'ancoraggio visivo
+     della finestra, restringerla la farebbe sembrare staccata. */
+  ion-tab-bar {
+    max-width: none;
+  }
+}
+
+@media (min-width: 1200px) {
+  ion-content > *:not(ion-fab):not(ion-refresher):not(ion-infinite-scroll) {
+    max-width: 880px;
+  }
+
+  ion-toolbar ion-searchbar,
+  ion-toolbar ion-segment {
+    max-width: 880px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Aree sicure (notch e barra gesti degli smartphone recenti).
+   Serve gia' ora nel browser mobile, e sara' indispensabile con Capacitor.
+   --------------------------------------------------------------------------- */
+ion-content {
+  --padding-bottom: env(safe-area-inset-bottom);
+}
+
+/*
+ * Pagine con il pulsante flottante (+).
+ *
+ * Il pulsante galleggia sopra il contenuto: senza spazio aggiuntivo in
+ * fondo copre l'ultima riga dell'elenco, rendendone inutilizzabili
+ * i comandi di modifica ed eliminazione.
+ *
+ * Il calcolo usa le misure reali di Ionic: 56px di pulsante piu' 10px
+ * di distacco dal bordo, con 18px di margine perche' la riga non
+ * risulti appiccicata.
+ */
+.pbc-con-fab {
+  --padding-bottom: calc(84px + env(safe-area-inset-bottom));
+}
+
+ion-fab[vertical='bottom'] {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+/* Evita che il testo si rimpicciolisca in orizzontale su iOS */
+body {
+  -webkit-text-size-adjust: 100%;
+}
+
+/* Immagini sempre contenute */
+img {
+  max-width: 100%;
+}

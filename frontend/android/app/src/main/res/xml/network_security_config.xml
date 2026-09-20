@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!--
+        Android blocca il traffico in chiaro (http://) dalla versione 9.
+        Senza questa eccezione le chiamate al backend di prova fallirebbero
+        senza messaggi utili.
+
+        L'eccezione vale SOLO per gli indirizzi di rete locale: un backend
+        pubblico deve comunque usare https. Quando il backend sara' online
+        questo file puo' essere eliminato.
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="true">192.168.1.0</domain>
+        <domain includeSubdomains="true">192.168.0.0</domain>
+    </domain-config>
+
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

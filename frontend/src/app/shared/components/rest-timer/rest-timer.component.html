@@ -1,0 +1,50 @@
+<ion-button fill="clear" size="small" (click)="start()">
+  <ion-icon name="timer-outline" slot="start"></ion-icon>
+  Recupero {{ seconds }}s
+</ion-button>
+
+<ion-modal [isOpen]="open()" (didDismiss)="close()">
+  <ng-template>
+    <ion-content [class.finished]="finished()">
+      <div class="timer-wrap">
+        <p class="exercise-name">{{ exerciseName }}</p>
+
+        <div class="circle" [class.done]="finished()" [class.warning]="inArrivo()">
+          <svg viewBox="0 0 120 120">
+            <circle class="track" cx="60" cy="60" r="54"></circle>
+            <circle
+              class="bar"
+              cx="60" cy="60" r="54"
+              [style.stroke-dashoffset]="339.3 - 339.3 * progress()"
+            ></circle>
+          </svg>
+          <div class="value">
+            @if (finished()) {
+              <ion-icon name="checkmark-circle" class="done-icon"></ion-icon>
+            } @else {
+              {{ display() }}
+            }
+          </div>
+        </div>
+
+        @if (finished()) {
+          <p class="hint done-text">Recupero terminato</p>
+        } @else {
+          <p class="hint">Recupero in corso</p>
+        }
+
+        <div class="actions">
+          <ion-button fill="outline" (click)="restart()">
+            <ion-icon name="refresh-outline" slot="start"></ion-icon>
+            Riavvia
+          </ion-button>
+          <ion-button (click)="close()">
+            <ion-icon name="close-outline" slot="start"></ion-icon>
+            Chiudi
+          </ion-button>
+        </div>
+
+      </div>
+    </ion-content>
+  </ng-template>
+</ion-modal>

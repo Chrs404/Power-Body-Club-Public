@@ -1,0 +1,134 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Clienti</ion-title>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-searchbar
+      placeholder="Cerca per nome o username"
+      [(ngModel)]="searchTerm"
+      [debounce]="0"
+    ></ion-searchbar>
+  </ion-toolbar>
+  <ion-toolbar>
+    <ion-segment [value]="filtro()" (ionChange)="impostaFiltro($any($event).detail.value)">
+      <ion-segment-button value="subscription">
+        <ion-icon name="card-outline"></ion-icon>
+        <ion-label>
+          Abbonamenti
+          @if (totaleUrgente('subscription') > 0) {
+            ({{ totaleUrgente('subscription') }})
+          }
+        </ion-label>
+      </ion-segment-button>
+      <ion-segment-button value="workout">
+        <ion-icon name="barbell-outline"></ion-icon>
+        <ion-label>
+          Schede
+          @if (totaleUrgente('workout') > 0) {
+            ({{ totaleUrgente('workout') }})
+          }
+        </ion-label>
+      </ion-segment-button>
+    </ion-segment>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="pbc-con-fab">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="alert alert-danger m-3">{{ errorMessage() }}</div>
+  } @else if (elementiFiltrati().length === 0) {
+    <div class="pbc-empty">
+      <ion-icon name="checkmark-circle-outline"></ion-icon>
+      <p class="mt-3 mb-0">
+        @if (searchTerm.trim()) {
+          Nessun cliente trovato per "{{ searchTerm }}".
+        } @else if (filtro() === 'subscription') {
+          Nessun cliente con un abbonamento registrato.
+        } @else {
+          Nessun cliente con una scheda attiva.
+        }
+      </p>
+    </div>
+  } @else {
+
+    <ion-list>
+      @if (scaduti().length > 0) {
+        <ion-list-header>
+          <ion-icon name="alert-circle-outline" color="danger" class="me-2"></ion-icon>
+          <ion-label color="danger">Scaduti</ion-label>
+        </ion-list-header>
+
+        @for (item of scaduti(); track item.clientId) {
+          <ion-item button [detail]="false" (click)="vaiAlCliente(item)">
+            <div slot="start" class="avatar scaduto">{{ iniziale(item.clientName) }}</div>
+            <ion-label>
+              <h2>{{ item.clientName }}</h2>
+              <p>{{ item.label }}</p>
+            </ion-label>
+            <div slot="end" class="esito">
+              <span class="badge-scadenza scaduto">{{ testoScadenza(item) }}</span>
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </div>
+          </ion-item>
+        }
+      }
+
+      @if (urgenti().length > 0) {
+        <ion-list-header>
+          <ion-icon name="time-outline" color="warning" class="me-2"></ion-icon>
+          <ion-label>In scadenza</ion-label>
+        </ion-list-header>
+
+        @for (item of urgenti(); track item.clientId) {
+          <ion-item button [detail]="false" (click)="vaiAlCliente(item)">
+            <div slot="start" class="avatar urgente">{{ iniziale(item.clientName) }}</div>
+            <ion-label>
+              <h2>{{ item.clientName }}</h2>
+              <p>{{ item.label }}</p>
+            </ion-label>
+            <div slot="end" class="esito">
+              <span class="badge-scadenza urgente">{{ testoScadenza(item) }}</span>
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </div>
+          </ion-item>
+        }
+      }
+
+      @if (inRegola().length > 0) {
+        <ion-list-header>
+          <ion-icon name="checkmark-circle-outline" color="medium" class="me-2"></ion-icon>
+          <ion-label>In regola</ion-label>
+        </ion-list-header>
+
+        @for (item of inRegola(); track item.clientId) {
+          <ion-item button [detail]="false" (click)="vaiAlCliente(item)">
+            <div slot="start" class="avatar in-arrivo">{{ iniziale(item.clientName) }}</div>
+            <ion-label>
+              <h2>{{ item.clientName }}</h2>
+              <p>{{ item.label }}</p>
+            </ion-label>
+            <div slot="end" class="esito">
+              <span class="badge-scadenza in-arrivo">{{ testoScadenza(item) }}</span>
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </div>
+          </ion-item>
+        }
+      }
+    </ion-list>
+
+  }
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab-button routerLink="/istruttore/clienti/nuovo">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

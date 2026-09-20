@@ -1,0 +1,134 @@
+.timer-wrap {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.exercise-name {
+  font-size: 1rem;
+  color: var(--ion-color-medium);
+  margin: 0;
+  text-align: center;
+}
+
+.circle {
+  position: relative;
+  width: 220px;
+  height: 220px;
+}
+
+.circle svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.circle circle {
+  fill: none;
+  stroke-width: 8;
+}
+
+.track {
+  stroke: var(--ion-color-light-shade);
+}
+
+.bar {
+  stroke: var(--ion-color-primary);
+  stroke-linecap: round;
+  stroke-dasharray: 339.3;
+  transition: stroke-dashoffset 0.2s linear, stroke 0.3s ease;
+}
+
+/* Ultimi 10 secondi: preavviso in ocra */
+.circle.warning .bar {
+  stroke: var(--ion-color-secondary);
+}
+
+.circle.warning .value {
+  color: var(--pbc-ocra-testo);
+}
+
+/*
+ * A recupero finito il cerchio si completa in ocra.
+ * Prima era verde su verde chiaro, combinazione a basso contrasto
+ * e ambigua: il verde qui segnala "completato", ma il messaggio
+ * corretto e' "e' ora di ripartire".
+ */
+.circle.done .bar,
+.circle.done .track {
+  stroke: var(--ion-color-secondary);
+}
+
+.value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ion-text-color);
+  transition: color 0.3s ease;
+}
+
+/*
+ * Ocra calibrato per ciascun tema: la tinta predefinita non raggiungeva
+ * la soglia di contrasto sul fondo velato (3.2:1 sul chiaro).
+ */
+:host {
+  --pbc-ocra-testo: #845526;
+}
+
+@media (prefers-color-scheme: dark) {
+  :host {
+    --pbc-ocra-testo: #cf9c66;
+  }
+}
+
+.done-icon {
+  font-size: 5rem;
+  color: var(--pbc-ocra-testo);
+  animation: comparsa 0.35s ease-out;
+}
+
+@keyframes comparsa {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.hint {
+  color: var(--ion-color-medium);
+  margin: 0;
+}
+
+.done-text {
+  color: var(--pbc-ocra-testo);
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/*
+ * Sfondo appena velato invece della tinta piena precedente:
+ * il testo mantiene il proprio colore e resta leggibile
+ * in tema chiaro e scuro.
+ */
+ion-content.finished {
+  --background: color-mix(in srgb, var(--ion-color-secondary) 14%, var(--ion-background-color));
+}
+
+@supports not (background: color-mix(in srgb, red 50%, blue)) {
+  ion-content.finished {
+    --background: #f6ecdd;
+  }
+}

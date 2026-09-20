@@ -1,0 +1,82 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Schede rapide</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="pbc-con-fab">
+  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (loading()) {
+    <div class="d-flex justify-content-center py-5">
+      <ion-spinner name="crescent"></ion-spinner>
+    </div>
+  } @else if (errorMessage()) {
+    <div class="alert alert-danger m-3">{{ errorMessage() }}</div>
+  } @else if (templates().length === 0) {
+    <div class="pbc-empty">
+      <ion-icon name="layers-outline"></ion-icon>
+      <p class="mt-3 mb-1">Nessuna scheda rapida.</p>
+      <p class="small mb-0">
+        Creane una con il pulsante +: potrai assegnarla a piu' clienti
+        senza ricostruirla ogni volta.
+      </p>
+    </div>
+  } @else {
+    <ion-list>
+      @for (t of templates(); track t.id) {
+        <ion-item>
+          <ion-label>
+            <h2>{{ t.name }}</h2>
+            <p>
+              {{ t._count.days }}
+              {{ t._count.days === 1 ? 'giorno' : 'giorni' }} ·
+              {{ totaleEsercizi(t) }} esercizi
+            </p>
+            @if (t.days.length > 0) {
+              <ion-note>
+                {{ t.days[0].label }}@if (t.days.length > 1) { , … }
+              </ion-note>
+            }
+          </ion-label>
+          <ion-button slot="end" fill="clear" (click)="scaricaPdf(t)"
+            [disabled]="scaricando() === t.id" aria-label="Scarica PDF">
+            @if (scaricando() === t.id) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              <ion-icon name="download-outline" slot="icon-only"></ion-icon>
+            }
+          </ion-button>
+          <ion-button slot="end" fill="clear" (click)="duplica(t)"
+            [disabled]="duplicando() === t.id" aria-label="Duplica">
+            @if (duplicando() === t.id) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              <ion-icon name="copy-outline" slot="icon-only"></ion-icon>
+            }
+          </ion-button>
+          <ion-button slot="end" fill="clear" (click)="modifica(t)"
+            aria-label="Modifica">
+            <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+          <ion-button slot="end" fill="clear" color="danger"
+            (click)="confermaEliminazione(t)" aria-label="Elimina">
+            <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+          </ion-button>
+        </ion-item>
+      }
+    </ion-list>
+
+    <p class="text-muted small text-center px-3 py-3 mb-0">
+      Per assegnarne una, apri il cliente e vai su "Schede di allenamento".
+    </p>
+  }
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab-button (click)="creaNuova()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>

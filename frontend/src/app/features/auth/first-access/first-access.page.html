@@ -1,0 +1,96 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Attiva il tuo account</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-8 col-lg-5">
+
+        @if (!needsName() && displayName()) {
+          <div class="welcome mb-4">
+            <p class="mb-1 text-muted small">Accedi come</p>
+            <h2 class="h5 mb-0">{{ displayName() }}</h2>
+          </div>
+        }
+
+        <p class="text-muted mb-4">
+          Scegli una password personale. Quella temporanea non sarà più valida.
+        </p>
+
+        <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+          @if (needsName()) {
+            <ion-list class="mb-3">
+              <ion-list-header><ion-label>I tuoi dati</ion-label></ion-list-header>
+              <ion-item>
+                <ion-input label="Nome" labelPlacement="floating"
+                  formControlName="firstName" autocomplete="given-name"></ion-input>
+              </ion-item>
+              <ion-item>
+                <ion-input label="Cognome" labelPlacement="floating"
+                  formControlName="lastName" autocomplete="family-name"></ion-input>
+              </ion-item>
+            </ion-list>
+          }
+
+          <ion-list class="mb-2">
+            <ion-list-header><ion-label>Nuova password</ion-label></ion-list-header>
+            <ion-item>
+              <ion-input label="Password" labelPlacement="floating" type="password"
+                formControlName="newPassword" autocomplete="new-password"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-input label="Conferma password" labelPlacement="floating"
+                type="password" formControlName="confirmPassword"
+                autocomplete="new-password"></ion-input>
+            </ion-item>
+          </ion-list>
+
+          <ion-note class="d-block mb-3 px-2">
+            Almeno 8 caratteri, con una lettera e un numero.
+          </ion-note>
+
+          <ion-list class="mb-3">
+            <ion-list-header><ion-label>Contatti (facoltativi)</ion-label></ion-list-header>
+            <ion-item>
+              <ion-input label="Email" labelPlacement="floating" type="email"
+                formControlName="email" autocomplete="email"
+                autocapitalize="off"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-input label="Telefono" labelPlacement="floating" type="tel"
+                formControlName="phone" autocomplete="tel"></ion-input>
+            </ion-item>
+          </ion-list>
+
+          @if (passwordsMismatch) {
+            <div class="alert alert-warning py-2 px-3 mb-3" role="alert">
+              Le due password non coincidono.
+            </div>
+          }
+
+          @if (errorMessage()) {
+            <div class="alert alert-danger py-2 px-3 mb-3" role="alert">
+              <div>{{ errorMessage() }}</div>
+              @for (entry of fieldErrors() | keyvalue; track entry.key) {
+                <div class="small mt-1">{{ entry.value }}</div>
+              }
+            </div>
+          }
+
+          <ion-button expand="block" type="submit" [disabled]="loading()">
+            @if (loading()) {
+              <ion-spinner name="crescent"></ion-spinner>
+            } @else {
+              Attiva account
+            }
+          </ion-button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</ion-content>

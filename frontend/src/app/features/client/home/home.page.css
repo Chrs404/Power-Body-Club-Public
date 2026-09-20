@@ -1,0 +1,44 @@
+.greeting {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+ion-card-title {
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.news-preview {
+  font-size: 0.9rem;
+  color: var(--ion-color-medium-shade);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.closure-row {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--ion-color-light-shade);
+}
+
+.closure-row:last-child {
+  border-bottom: none;
+}
+
+.toolbar-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-inline-start: 12px;
+}
+
+.page-intro .eyebrow {
+  font-family: var(--pbc-font-display);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.72rem;
+  color: var(--ion-color-secondary);
+}

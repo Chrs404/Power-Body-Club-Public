@@ -1,0 +1,39 @@
+ion-list {
+  background: transparent;
+}
+
+.credentials-box {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-family: monospace;
+  font-size: 1.05rem;
+}
+
+.cred-riga {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.cred-riga + .cred-riga {
+  margin-top: 0.35rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.cred-label {
+  display: block;
+  opacity: 0.8;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cred-valore {
+  font-size: 1.05rem;
+  /* Selezionabile a mano: se la copia negli appunti fallisce,
+     l'utente puo' comunque prendere il testo. */
+  user-select: all;
+}

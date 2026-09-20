@@ -1,0 +1,113 @@
+ion-list {
+  background: transparent;
+}
+
+.day-block {
+  border: 1px solid var(--ion-color-light-shade);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.day-head {
+  display: flex;
+  align-items: center;
+  background: var(--ion-color-light);
+  padding-left: 0.75rem;
+}
+
+.day-title {
+  font-weight: 600;
+}
+
+.exercise-row {
+  border-top: 1px solid var(--ion-color-light-shade);
+}
+
+.exercise-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem 0;
+}
+
+.exercise-name {
+  flex: 1;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.exercise-position {
+  min-width: 1.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  text-align: center;
+}
+
+.exercise-head ion-button {
+  --padding-start: 4px;
+  --padding-end: 4px;
+  height: 30px;
+}
+
+/* --- Superset ---------------------------------------------------------- */
+
+/*
+ * Le righe collegate sono rientrate e segnate da una barra laterale:
+ * il raggruppamento si legge a colpo d'occhio senza contenitori annidati,
+ * che su schermo stretto ruberebbero troppo spazio.
+ */
+.exercise-row.apre-superset {
+  border-left: 3px solid var(--ion-color-secondary);
+}
+
+.exercise-row.in-superset {
+  border-left: 3px solid var(--ion-color-secondary);
+  border-top: none;
+  background: color-mix(in srgb, var(--ion-color-secondary) 6%, transparent);
+}
+
+.link-spacer {
+  display: inline-block;
+  width: 34px;
+}
+
+.superset-nota {
+  font-size: 0.72rem;
+  color: var(--ion-color-medium);
+  margin: 0;
+  padding: 0 0.75rem 0.5rem 3rem;
+}
+
+/* --- Selezione multipla nel selettore esercizi -------------------------- */
+
+/*
+ * Pallino numerato invece di una spunta generica: mostra all'istruttore
+ * anche in quale ORDINE gli esercizi verranno aggiunti, non solo che
+ * sono stati scelti. Vuoto e col solo bordo quando non selezionato,
+ * cosi' la fila non si sposta quando lo stato cambia.
+ */
+.segno-selezione {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 2px solid var(--ion-color-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  flex: 0 0 auto;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.segno-selezione.attivo {
+  background: var(--ion-color-primary);
+  border-color: var(--ion-color-primary);
+  color: #fff;
+}
+
+ion-item.selezionato {
+  --background: color-mix(in srgb, var(--ion-color-primary) 8%, var(--ion-item-background, transparent));
+}
