@@ -14,7 +14,7 @@
  *   'https://qualcosa.trycloudflare.com/api' tunnel verso il PC di casa
  *   'http://192.168.1.50:3000/api'           solo sulla stessa rete Wi-Fi
  */
-const API_URL_APP = 'https://power-body-club.onrender.com/api';
+const API_URL_APP = 'https://power-body-club-public.onrender.com/api';
 
 /**
  * Fuori dall'app installata l'indirizzo viene riconosciuto da solo:
