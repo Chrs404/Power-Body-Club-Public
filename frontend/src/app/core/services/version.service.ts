@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { API_BASE_URL } from '../config/api.config';
 
 /** Versione di questa build. Va alzata a ogni pubblicazione. */
-export const VERSIONE_APP = '1.0.0';
+export const VERSIONE_APP = '1.0.1';
 
 interface RispostaVersione {
   minVersion: string;
