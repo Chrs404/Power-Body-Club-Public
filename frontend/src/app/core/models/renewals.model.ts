@@ -7,9 +7,10 @@ export interface RenewalItem {
   type: RenewalType;
   /** Nome del piano o della scheda. */
   label: string;
-  endDate: string;
-  /** Negativo se già scaduto, 0 se scade oggi. */
-  daysLeft: number;
+  /** null quando il cliente non ha un abbonamento o una scheda. */
+  endDate: string | null;
+  /** Negativo se già scaduto, 0 se scade oggi, null se non c'è scadenza. */
+  daysLeft: number | null;
 }
 
 export interface RenewalsCategorySummary {

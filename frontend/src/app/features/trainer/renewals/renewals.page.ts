@@ -23,6 +23,26 @@ const GIORNI_URGENZA = 7;
 const FINESTRE_DISPONIBILI = [7, 30, 60, 90] as const;
 
 /**
+ * Una scadenza vera: abbonamento o scheda che ha una data.
+ *
+ * Il tipo condiviso `RenewalItem` ammette `daysLeft` ed `endDate` nulli,
+ * perche' la pagina Clienti deve mostrare anche chi non ha alcun
+ * abbonamento. Qui quel caso non esiste: chi non ha un abbonamento non
+ * ha una scadenza, quindi non e' ne' scaduto ne' in arrivo.
+ *
+ * Il backend li esclude gia' quando la richiesta indica una finestra, e
+ * questa pagina ne indica sempre una. Restringere comunque il tipo
+ * all'ingresso serve a due cose: rende la pagina indipendente da quel
+ * dettaglio del backend, ed evita di disseminare controlli su null in
+ * ogni filtro e in ogni funzione di presentazione. Da qui in poi
+ * `daysLeft` e' un numero e basta.
+ */
+type ScadenzaDatata = RenewalItem & { endDate: string; daysLeft: number };
+
+const haScadenza = (i: RenewalItem): i is ScadenzaDatata =>
+  i.daysLeft !== null && i.endDate !== null;
+
+/**
  * Scadenze: elenco unificato di abbonamenti e schede di allenamento
  * in scadenza o già scaduti.
  *
@@ -30,6 +50,10 @@ const FINESTRE_DISPONIBILI = [7, 30, 60, 90] as const;
  * dashboard, le schede da nessuna parte. Unendole in un solo elenco
  * ordinato per urgenza, l'istruttore ha una sola schermata da
  * controllare invece di doverne dedurre lo stato da più punti diversi.
+ *
+ * Da non confondere con la pagina Clienti, che usa lo stesso endpoint
+ * ma senza finestra: quella mostra tutti, questa solo chi ha qualcosa
+ * da rinnovare entro il limite scelto.
  */
 @Component({
   selector: 'app-renewals',
@@ -48,7 +72,7 @@ export class RenewalsPage implements OnInit {
 
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
-  readonly items = signal<RenewalItem[]>([]);
+  readonly items = signal<ScadenzaDatata[]>([]);
   readonly summary = signal<RenewalsSummary | null>(null);
 
   readonly filtro = signal<Filtro>('all');
@@ -88,7 +112,9 @@ export class RenewalsPage implements OnInit {
     this.errorMessage.set(null);
     try {
       const risposta = await this.renewalsService.list(this.finestraGiorni());
-      this.items.set(risposta.items);
+      // Il filtro e' il punto in cui i dati grezzi diventano scadenze:
+      // vedi il commento su ScadenzaDatata.
+      this.items.set(risposta.items.filter(haScadenza));
       this.summary.set(risposta.summary);
     } catch {
       this.errorMessage.set('Impossibile caricare le scadenze.');
@@ -168,13 +194,13 @@ export class RenewalsPage implements OnInit {
    * Sotto zero è già scaduto; sotto la soglia è imminente; il resto
    * è "in arrivo", visibile ma senza allarmare.
    */
-  livelloUrgenza(item: RenewalItem): 'scaduto' | 'urgente' | 'in-arrivo' {
+  livelloUrgenza(item: ScadenzaDatata): 'scaduto' | 'urgente' | 'in-arrivo' {
     if (item.daysLeft < 0) return 'scaduto';
     if (item.daysLeft <= GIORNI_URGENZA) return 'urgente';
     return 'in-arrivo';
   }
 
-  testoScadenza(item: RenewalItem): string {
+  testoScadenza(item: ScadenzaDatata): string {
     const g = item.daysLeft;
     if (g < 0) return g === -1 ? 'Scaduto ieri' : `Scaduto da ${-g} giorni`;
     if (g === 0) return 'Scade oggi';

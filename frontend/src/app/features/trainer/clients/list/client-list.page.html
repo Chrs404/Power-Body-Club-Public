@@ -3,9 +3,15 @@
     <ion-title>Clienti</ion-title>
   </ion-toolbar>
   <ion-toolbar>
+    <!--
+      [value] + (ionInput) al posto di [(ngModel)]: il testo cercato e'
+      un signal, e va scritto con .set() perche' il filtro si aggiorni
+      mentre si digita. Con debounce 0 il riscontro e' immediato.
+    -->
     <ion-searchbar
       placeholder="Cerca per nome o username"
-      [(ngModel)]="searchTerm"
+      [value]="searchTerm()"
+      (ionInput)="aggiornaRicerca($event)"
       [debounce]="0"
     ></ion-searchbar>
   </ion-toolbar>
@@ -48,12 +54,10 @@
     <div class="pbc-empty">
       <ion-icon name="checkmark-circle-outline"></ion-icon>
       <p class="mt-3 mb-0">
-        @if (searchTerm.trim()) {
-          Nessun cliente trovato per "{{ searchTerm }}".
-        } @else if (filtro() === 'subscription') {
-          Nessun cliente con un abbonamento registrato.
+        @if (searchTerm().trim()) {
+          Nessun cliente trovato per "{{ searchTerm() }}".
         } @else {
-          Nessun cliente con una scheda attiva.
+          Nessun cliente registrato.
         }
       </p>
     </div>
@@ -117,6 +121,37 @@
             </ion-label>
             <div slot="end" class="esito">
               <span class="badge-scadenza in-arrivo">{{ testoScadenza(item) }}</span>
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </div>
+          </ion-item>
+        }
+      }
+
+      <!--
+        In fondo, e in grigio: chi non ha nulla da rinnovare non e' un
+        caso urgente, ma deve restare raggiungibile. Senza badge, perche'
+        non c'e' alcuna data da mostrare: lo dice gia' il sottotitolo.
+      -->
+      @if (senzaScadenza().length > 0) {
+        <ion-list-header>
+          <ion-icon name="ellipse-outline" color="medium" class="me-2"></ion-icon>
+          <ion-label>
+            @if (filtro() === 'subscription') {
+              Senza abbonamento
+            } @else {
+              Senza scheda
+            }
+          </ion-label>
+        </ion-list-header>
+
+        @for (item of senzaScadenza(); track item.clientId) {
+          <ion-item button [detail]="false" (click)="vaiAlCliente(item)">
+            <div slot="start" class="avatar">{{ iniziale(item.clientName) }}</div>
+            <ion-label>
+              <h2>{{ item.clientName }}</h2>
+              <p>{{ item.label }}</p>
+            </ion-label>
+            <div slot="end" class="esito">
               <ion-icon name="chevron-forward-outline"></ion-icon>
             </div>
           </ion-item>

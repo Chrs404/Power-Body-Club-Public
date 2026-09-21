@@ -13,9 +13,16 @@ export async function list(req: Request, res: Response): Promise<void> {
 
   // Conteggi derivati dalla stessa lista: l'elenco per una singola
   // palestra è piccolo, non serve una seconda query per i totali.
+  //
+  // Il controllo su null non è una formalità: chi non ha un abbonamento
+  // ha daysLeft null, e `null >= 0` in JavaScript è vero. Senza questo
+  // filtro quei clienti finirebbero contati fra quelli "in scadenza".
   const conta = (tipo: 'subscription' | 'workout', scaduti: boolean) =>
     items.filter(
-      (i) => i.type === tipo && (scaduti ? i.daysLeft < 0 : i.daysLeft >= 0)
+      (i) =>
+        i.type === tipo &&
+        i.daysLeft !== null &&
+        (scaduti ? i.daysLeft < 0 : i.daysLeft >= 0)
     ).length;
 
   res.json({

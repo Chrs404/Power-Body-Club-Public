@@ -1,5 +1,4 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import {
   IonContent, IonHeader, IonTitle, IonToolbar, IonSearchbar,
@@ -9,7 +8,7 @@ import {
 import { addIcons } from 'ionicons';
 import {
   add, cardOutline, barbellOutline, checkmarkCircleOutline,
-  alertCircleOutline, timeOutline, chevronForwardOutline,
+  alertCircleOutline, timeOutline, chevronForwardOutline, ellipseOutline,
 } from 'ionicons/icons';
 
 import { RenewalsService } from '../../../../core/services/renewals.service';
@@ -29,15 +28,21 @@ const GIORNI_URGENZA = 7;
  * allenamento non comparivano da nessuna parte come avviso — bisognava
  * aprire ogni cliente per scoprire se la sua era vicina alla fine.
  *
- * Qui non c'e' alcuna finestra temporale: ogni cliente con un
- * abbonamento o una scheda e' visibile, ordinato per urgenza, cosi'
- * la vista resta completa invece di nascondere chi e' semplicemente
- * in regola.
+ * Qui non c'e' alcuna finestra temporale: ogni cliente attivo e'
+ * visibile, ordinato per urgenza, cosi' la vista resta completa
+ * invece di nascondere chi e' semplicemente in regola.
+ *
+ * "Ogni cliente" e' da prendere alla lettera, ed e' il motivo per cui
+ * esiste il gruppo in fondo: anche chi non ha alcun abbonamento deve
+ * comparire, altrimenti l'istruttore non ha modo di raggiungerlo — ne'
+ * scorrendo, ne' cercando, perche' la ricerca filtra questo stesso
+ * elenco. Era esattamente il caso di un cliente appena creato senza
+ * date di abbonamento: spariva subito dopo essere stato inserito.
  */
 @Component({
   selector: 'app-client-list',
   imports: [
-    FormsModule, RouterLink,
+    RouterLink,
     IonContent, IonHeader, IonTitle, IonToolbar, IonSearchbar,
     IonSegment, IonSegmentButton, IonLabel, IonSpinner, IonList, IonItem,
     IonListHeader, IonIcon, IonFab, IonFabButton, IonRefresher, IonRefresherContent,
@@ -54,7 +59,16 @@ export class ClientListPage implements OnInit {
   readonly items = signal<RenewalItem[]>([]);
 
   readonly filtro = signal<Filtro>('subscription');
-  searchTerm = '';
+
+  /*
+   * Signal, non una proprieta' normale, ed e' il punto in cui questa
+   * pagina si era rotta: `elementiFiltrati` e' un computed, e un
+   * computed si ricalcola solo quando cambia un signal da cui dipende.
+   * Con `searchTerm` proprieta' semplice, digitare non lo svegliava:
+   * l'elenco si aggiornava solo quando cambiava `items()`, cioe' al
+   * ricaricamento della pagina.
+   */
+  readonly searchTerm = signal('');
 
   // ngOnInit ha già caricato i dati: al primo ingresso non serve rifarlo.
   private primoIngresso = true;
@@ -62,7 +76,7 @@ export class ClientListPage implements OnInit {
   constructor() {
     addIcons({
       add, cardOutline, barbellOutline, checkmarkCircleOutline,
-      alertCircleOutline, timeOutline, chevronForwardOutline,
+      alertCircleOutline, timeOutline, chevronForwardOutline, ellipseOutline,
     });
   }
 
@@ -89,8 +103,8 @@ export class ClientListPage implements OnInit {
   private async load(): Promise<void> {
     this.errorMessage.set(null);
     try {
-      // Nessun parametro: restituisce ogni cliente con un abbonamento
-      // o una scheda, indipendentemente da quanto lontana sia la data.
+      // Nessun parametro: restituisce ogni cliente attivo, con o senza
+      // scadenze, indipendentemente da quanto lontana sia la data.
       const risposta = await this.renewalsService.list();
       this.items.set(risposta.items);
     } catch {
@@ -106,10 +120,21 @@ export class ClientListPage implements OnInit {
     this.filtro.set((valore as Filtro) ?? 'subscription');
   }
 
+  /**
+   * Aggiorna il testo cercato a ogni battuta.
+   *
+   * Sostituisce il precedente [(ngModel)]: la scrittura deve passare
+   * per .set(), altrimenti il computed non viene avvisato.
+   */
+  aggiornaRicerca(event: Event): void {
+    const valore = (event as CustomEvent<{ value?: string | null }>).detail?.value;
+    this.searchTerm.set(valore ?? '');
+  }
+
   readonly elementiFiltrati = computed(() => {
     const perTipo = this.items().filter((i) => i.type === this.filtro());
 
-    const termine = this.searchTerm.trim().toLowerCase();
+    const termine = this.searchTerm().trim().toLowerCase();
     if (!termine) return perTipo;
 
     return perTipo.filter(
@@ -120,21 +145,37 @@ export class ClientListPage implements OnInit {
   });
 
   readonly scaduti = computed(() =>
-    this.elementiFiltrati().filter((i) => i.daysLeft < 0)
+    this.elementiFiltrati().filter((i) => i.daysLeft !== null && i.daysLeft < 0)
   );
 
   readonly urgenti = computed(() =>
-    this.elementiFiltrati().filter((i) => i.daysLeft >= 0 && i.daysLeft <= GIORNI_URGENZA)
+    this.elementiFiltrati().filter(
+      (i) => i.daysLeft !== null && i.daysLeft >= 0 && i.daysLeft <= GIORNI_URGENZA
+    )
   );
 
   readonly inRegola = computed(() =>
-    this.elementiFiltrati().filter((i) => i.daysLeft > GIORNI_URGENZA)
+    this.elementiFiltrati().filter((i) => i.daysLeft !== null && i.daysLeft > GIORNI_URGENZA)
   );
 
-  /** Totale scaduti o urgenti nella categoria, per il badge sul segmento. */
+  /**
+   * Clienti senza abbonamento (o senza scheda, sull'altra scheda del
+   * segmento). Vanno in fondo di proposito: non hanno una scadenza, e
+   * mescolarli agli scaduti confonderebbe chi non ha mai sottoscritto
+   * con chi ha lasciato scadere qualcosa.
+   */
+  readonly senzaScadenza = computed(() =>
+    this.elementiFiltrati().filter((i) => i.daysLeft === null)
+  );
+
+  /**
+   * Totale scaduti o urgenti nella categoria, per il badge sul segmento.
+   * Il controllo su null è necessario: senza, `null <= 7` sarebbe vero
+   * e i clienti senza abbonamento gonfierebbero il contatore.
+   */
   totaleUrgente(tipo: RenewalType): number {
     return this.items().filter(
-      (i) => i.type === tipo && i.daysLeft <= GIORNI_URGENZA
+      (i) => i.type === tipo && i.daysLeft !== null && i.daysLeft <= GIORNI_URGENZA
     ).length;
   }
 
@@ -148,7 +189,8 @@ export class ClientListPage implements OnInit {
     return (nome.trim()[0] ?? '?').toUpperCase();
   }
 
-  livelloUrgenza(item: RenewalItem): 'scaduto' | 'urgente' | 'in-arrivo' {
+  livelloUrgenza(item: RenewalItem): 'scaduto' | 'urgente' | 'in-arrivo' | 'assente' {
+    if (item.daysLeft === null) return 'assente';
     if (item.daysLeft < 0) return 'scaduto';
     if (item.daysLeft <= GIORNI_URGENZA) return 'urgente';
     return 'in-arrivo';
@@ -156,6 +198,9 @@ export class ClientListPage implements OnInit {
 
   testoScadenza(item: RenewalItem): string {
     const g = item.daysLeft;
+    // Senza scadenza non c'e' nulla da scrivere nel badge: il
+    // sottotitolo dice gia' "Nessun abbonamento".
+    if (g === null) return '';
     if (g < 0) return g === -1 ? 'Scaduto ieri' : `Scaduto da ${-g} giorni`;
     if (g === 0) return 'Scade oggi';
     if (g === 1) return 'Scade domani';
