@@ -94,6 +94,15 @@
                       [class.in-superset]="ex.linkedToPrevious"
                       [class.apre-superset]="apreSuperset(day, exIndex)">
 
+                      <!--
+                        Dentro la riga e non come elemento a se': il gruppo
+                        trascinabile conta i suoi figli per calcolare le
+                        posizioni, e un'intestazione separata le sfaserebbe.
+                      -->
+                      @if (sezioneDi(day, exIndex); as gruppo) {
+                        <div class="pbc-sezione-muscolo sezione-in-riga">{{ groupLabels[gruppo] }}</div>
+                      }
+
                       <div class="exercise-head">
                         <ion-reorder></ion-reorder>
 

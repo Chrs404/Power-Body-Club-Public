@@ -103,10 +103,28 @@ export class AuthService {
    * 5xx durante il risveglio del server la lasciano intatta.
    */
   private async verificaSessione(inSecondoPiano = false): Promise<boolean> {
+    // Il token con cui parte la richiesta: serve sotto per non resuscitare
+    // una sessione chiusa nel frattempo.
+    const tokenInviato = this.tokenService.getToken();
+
     try {
       const response = await firstValueFrom(
         this.http.get<ApiResponse>(`${API_BASE_URL}/auth/me`)
       );
+
+      /*
+       * Rinnovo della sessione: il server risponde con un token nuovo, a
+       * durata piena. La scadenza conta cosi' dall'ultima apertura
+       * dell'app e non dal login.
+       *
+       * Si salva solo se il token e' ancora quello inviato. La verifica
+       * avviene in secondo piano: se nel frattempo l'utente ha fatto
+       * logout (o un nuovo login), la risposta arriva tardi e non deve
+       * sovrascrivere la sua scelta.
+       */
+      if (response.token && this.tokenService.getToken() === tokenInviato) {
+        this.tokenService.setToken(response.token);
+      }
 
       if (response.user) {
         this.applicaUtente(response.user);

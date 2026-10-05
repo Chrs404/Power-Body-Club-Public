@@ -461,3 +461,29 @@ body {
 img {
   max-width: 100%;
 }
+
+/*
+ * Intestazione di sezione per gruppo muscolare dentro un giorno della
+ * scheda (pagina Scheda del cliente, costruttore, storico). Stesso
+ * carattere condensato delle altre etichette, nel colore del marchio,
+ * con una riga sottile che separa la sezione da quella precedente.
+ */
+.pbc-sezione-muscolo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem 1rem 0.35rem;
+  font-family: var(--pbc-font-display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ion-color-primary);
+}
+
+.pbc-sezione-muscolo::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: color-mix(in srgb, var(--ion-color-primary) 25%, transparent);
+}

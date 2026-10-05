@@ -16,13 +16,17 @@ import { timeOutline, trendingUpOutline, checkmarkDoneOutline } from 'ionicons/i
 
 import { WorkoutService } from '../../../core/services/workout.service';
 import { TrainingService } from '../../../core/services/training.service';
-import { Workout, WorkoutSummary } from '../../../core/models/workout.model';
+import {
+  Workout, WorkoutSummary, WorkoutDay, WorkoutExercise, ordinaPerGruppoMuscolare,
+} from '../../../core/models/workout.model';
+import { MuscleGroup } from '../../../core/models/exercise.model';
+import { MuscleGroupPipe } from '../../../shared/pipes/muscle-group.pipe';
 import { SessionHistoryItem, WeightLog } from '../../../core/models/training.model';
 
 @Component({
   selector: 'app-client-history',
   imports: [
-    DatePipe,
+    DatePipe, MuscleGroupPipe,
     IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonLabel,
     IonSpinner, IonIcon, IonBadge, IonNote, IonModal, IonButtons, IonButton,
     IonRefresher, IonRefresherContent, IonAccordion, IonAccordionGroup,
@@ -145,6 +149,17 @@ export class ClientHistoryPage implements OnInit {
     const h = Math.floor(minutes / 60);
     const m = minutes % 60;
     return m === 0 ? `${h}h` : `${h}h ${m}min`;
+  }
+
+  /** Esercizi del giorno raccolti per gruppo muscolare, come nella pagina Scheda. */
+  eserciziPerGruppo(day: WorkoutDay): WorkoutExercise[] {
+    return ordinaPerGruppoMuscolare(day.exercises, (ex) => ex.exercise.muscleGroup);
+  }
+
+  /** Gruppo da mostrare come intestazione, solo dove inizia una sezione nuova. */
+  sezioneDi(esercizi: WorkoutExercise[], indice: number): MuscleGroup | null {
+    const gruppo = esercizi[indice].exercise.muscleGroup;
+    return indice === 0 || esercizi[indice - 1].exercise.muscleGroup !== gruppo ? gruppo : null;
   }
 
   formatWeight(value: string | number | null): string | null {

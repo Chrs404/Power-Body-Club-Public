@@ -111,3 +111,9 @@ ion-list {
 ion-item.selezionato {
   --background: color-mix(in srgb, var(--ion-color-primary) 8%, var(--ion-item-background, transparent));
 }
+
+/* L'intestazione di sezione sta dentro la prima riga: niente rientro a
+   sinistra, cosi' si allinea al bordo come nelle altre pagine. */
+.sezione-in-riga {
+  padding: 0.6rem 0.75rem 0.25rem;
+}

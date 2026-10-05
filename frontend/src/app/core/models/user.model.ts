@@ -41,5 +41,7 @@ export interface ApiResponse<T = unknown> {
   message?: string;
   fields?: Record<string, string>;
   user?: User;
+  /** Token rinnovato, restituito da /auth/me a ogni apertura dell'app. */
+  token?: string;
   data?: T;
 }

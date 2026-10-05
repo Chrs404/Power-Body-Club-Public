@@ -182,7 +182,11 @@
                 </ion-item>
                 <div slot="content">
                   <ion-list>
-                    @for (ex of day.exercises; track ex.id) {
+                    @let esercizi = eserciziPerGruppo(day);
+                    @for (ex of esercizi; track ex.id; let j = $index) {
+                      @if (sezioneDi(esercizi, j); as gruppo) {
+                        <div class="pbc-sezione-muscolo">{{ gruppo | muscleGroup }}</div>
+                      }
                       <ion-item>
                         <ion-label>
                           <h3>{{ ex.exercise.name }}</h3>

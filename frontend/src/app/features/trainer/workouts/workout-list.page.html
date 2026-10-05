@@ -48,6 +48,24 @@
               @if (w._count) {
                 <ion-note>{{ w._count.days }} giorni</ion-note>
               }
+              <!--
+                Sotto le date e non fra le icone a destra: con PDF,
+                modifica ed elimina la riga e' gia' piena, e una quarta
+                icona senza testo non si capirebbe.
+              -->
+              @if (w.status !== 'ACTIVE') {
+                <div class="mt-2">
+                  <ion-button size="small" fill="outline" (click)="confermaAttiva(w)"
+                    [disabled]="attivando() !== null">
+                    @if (attivando() === w.id) {
+                      <ion-spinner name="crescent" slot="start"></ion-spinner>
+                    } @else {
+                      <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>
+                    }
+                    Rendi attiva
+                  </ion-button>
+                </div>
+              }
             </ion-label>
             <ion-button slot="end" fill="clear" (click)="scaricaPdf(w)"
               [disabled]="scaricando() === w.id" aria-label="Scarica PDF">

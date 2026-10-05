@@ -56,6 +56,7 @@ router.get('/', workoutController.list);
 router.post('/', validate(createWorkoutSchema), workoutController.create);
 router.patch('/:id', validate(updateWorkoutSchema), workoutController.update);
 router.post('/:id/archive', workoutController.archive);
+router.post('/:id/activate', workoutController.activate);
 router.post('/:id/duplicate', workoutController.duplicate);
 router.delete('/:id', workoutController.remove);
 

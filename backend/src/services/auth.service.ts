@@ -84,6 +84,30 @@ export async function getCurrentUser(userId: number): Promise<AuthenticatedUser>
 }
 
 /**
+ * Profilo aggiornato e un token nuovo, con la durata piena.
+ *
+ * Serve a far scadere la sessione dall'ULTIMO utilizzo invece che dal
+ * login: l'app lo chiama a ogni apertura, quindi chi la usa non viene
+ * mai buttato fuori, e chi non la apre per JWT_EXPIRES_IN giorni deve
+ * rientrare. Prima il token scadeva a data fissa dal login, anche per
+ * chi apriva l'app tutti i giorni.
+ *
+ * Il token nuovo si costruisce dai dati appena letti dal database, non
+ * da quelli del token vecchio: un cambio di username o di ruolo viene
+ * cosi' recepito. Un utente disattivato non arriva fin qui, perche'
+ * getCurrentUser lo respinge prima.
+ */
+export async function rinnovaSessione(
+  userId: number
+): Promise<{ token: string; user: AuthenticatedUser }> {
+  const user = await getCurrentUser(userId);
+  return {
+    token: signToken({ userId: user.id, username: user.username, role: user.role }),
+    user,
+  };
+}
+
+/**
  * Primo accesso: il cliente imposta la password definitiva.
  * Nome e cognome sono normalmente gia' presenti (inseriti dall'istruttore)
  * e non vengono richiesti; restano modificabili dal profilo.

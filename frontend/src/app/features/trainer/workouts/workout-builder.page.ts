@@ -21,7 +21,9 @@ import { ClientService } from '../../../core/services/client.service';
 import {
   Exercise, ExerciseInput, MuscleGroup, MUSCLE_GROUPS, MUSCLE_GROUP_LABELS,
 } from '../../../core/models/exercise.model';
-import { Workout, WorkoutDayInput, WorkoutExerciseInput } from '../../../core/models/workout.model';
+import {
+  Workout, WorkoutDayInput, WorkoutExerciseInput, ordinaPerGruppoMuscolare,
+} from '../../../core/models/workout.model';
 
 /**
  * Riga in costruzione: tiene anche il nome, per non rileggere il catalogo.
@@ -33,6 +35,8 @@ import { Workout, WorkoutDayInput, WorkoutExerciseInput } from '../../../core/mo
 interface DraftExercise extends WorkoutExerciseInput {
   uid: string;
   exerciseName: string;
+  /** Solo per raggruppare la bozza in sezioni: non viene inviato al server. */
+  muscleGroup: MuscleGroup;
   /** Superset: eseguito di fila con l'esercizio precedente. */
   linkedToPrevious: boolean;
 }
@@ -294,18 +298,23 @@ export class WorkoutBuilderPage implements OnInit {
     return days.map((day) => ({
       uid: nuovoUid('giorno'),
       label: day.label,
-      exercises: day.exercises.map((we) => ({
-        uid: nuovoUid('esercizio'),
-        linkedToPrevious: we.linkedToPrevious,
-        exerciseId: we.exerciseId,
-        exerciseName: we.exercise.name,
-        sets: we.sets,
-        reps: we.reps,
-        restSeconds: we.restSeconds,
-        suggestedWeight:
-          we.suggestedWeight !== null ? Number(we.suggestedWeight) : null,
-        notes: we.notes ?? undefined,
-      })),
+      // Una scheda creata prima delle sezioni puo' avere i gruppi alternati:
+      // aprendola viene gia' raccolta, e salvandola resta cosi'.
+      exercises: this.sistemaGiorno(
+        day.exercises.map((we) => ({
+          uid: nuovoUid('esercizio'),
+          linkedToPrevious: we.linkedToPrevious,
+          exerciseId: we.exerciseId,
+          exerciseName: we.exercise.name,
+          muscleGroup: we.exercise.muscleGroup,
+          sets: we.sets,
+          reps: we.reps,
+          restSeconds: we.restSeconds,
+          suggestedWeight:
+            we.suggestedWeight !== null ? Number(we.suggestedWeight) : null,
+          notes: we.notes ?? undefined,
+        }))
+      ),
     }));
   }
 
@@ -355,24 +364,7 @@ export class WorkoutBuilderPage implements OnInit {
     this.startDate = workout.startDate.slice(0, 10);
     this.endDate = workout.endDate ? workout.endDate.slice(0, 10) : '';
     this.notes = workout.notes ?? '';
-    this.days.set(
-      workout.days.map((day) => ({
-        uid: nuovoUid('giorno'),
-        label: day.label,
-        exercises: day.exercises.map((we) => ({
-          uid: nuovoUid('esercizio'),
-          linkedToPrevious: we.linkedToPrevious,
-          exerciseId: we.exerciseId,
-          exerciseName: we.exercise.name,
-          sets: we.sets,
-          reps: we.reps,
-          restSeconds: we.restSeconds,
-          suggestedWeight:
-            we.suggestedWeight !== null ? Number(we.suggestedWeight) : null,
-          notes: we.notes ?? undefined,
-        })),
-      }))
-    );
+    this.days.set(this.giorniInBozza(workout.days));
   }
 
   addDay(): void {
@@ -476,6 +468,7 @@ export class WorkoutBuilderPage implements OnInit {
       uid: nuovoUid('esercizio'),
       exerciseId: exercise.id,
       exerciseName: exercise.name,
+      muscleGroup: exercise.muscleGroup,
       linkedToPrevious: false,
       sets: 3,
       reps: '10',
@@ -483,9 +476,11 @@ export class WorkoutBuilderPage implements OnInit {
       suggestedWeight: null,
     }));
 
+    // Ogni esercizio aggiunto finisce in fondo alla sezione del suo
+    // gruppo muscolare, o apre una sezione nuova in fondo al giorno.
     copy[this.targetDayIndex] = {
       ...day,
-      exercises: [...day.exercises, ...nuoveRighe],
+      exercises: this.sistemaGiorno([...day.exercises, ...nuoveRighe]),
     };
 
     this.days.set(copy);
@@ -589,7 +584,7 @@ export class WorkoutBuilderPage implements OnInit {
     const copy = [...this.days()];
     copy[dayIndex] = {
       ...copy[dayIndex],
-      exercises: this.normalizza(
+      exercises: this.sistemaGiorno(
         copy[dayIndex].exercises.filter((_, i) => i !== exerciseIndex)
       ),
     };
@@ -628,7 +623,10 @@ export class WorkoutBuilderPage implements OnInit {
     const exercises = [...copy[dayIndex].exercises];
     const [moved] = exercises.splice(from, 1);
     exercises.splice(to, 0, moved);
-    copy[dayIndex] = { ...copy[dayIndex], exercises: this.normalizza(exercises) };
+    // Uno spostamento dentro un'altra sezione viene ricondotto alla sezione
+    // giusta (in fondo); spostando invece il primo esercizio di una sezione
+    // sopra un'altra, e' l'intera sezione a salire.
+    copy[dayIndex] = { ...copy[dayIndex], exercises: this.sistemaGiorno(exercises) };
     this.days.set(copy);
   }
 
@@ -640,6 +638,37 @@ export class WorkoutBuilderPage implements OnInit {
     return esercizi.map((ex, i) =>
       i === 0 && ex.linkedToPrevious ? { ...ex, linkedToPrevious: false } : ex
     );
+  }
+
+  /**
+   * Collegamenti corretti e righe raccolte per gruppo muscolare.
+   *
+   * L'ordine salvato coincide cosi' con quello mostrato: il cliente, lo
+   * storico e il PDF vedono la stessa sequenza dell'istruttore. I superset
+   * si spostano interi e restano sotto il gruppo del primo esercizio.
+   */
+  private sistemaGiorno(esercizi: DraftExercise[]): DraftExercise[] {
+    return this.normalizza(
+      ordinaPerGruppoMuscolare(this.normalizza(esercizi), (ex) => ex.muscleGroup)
+    );
+  }
+
+  /**
+   * Gruppo da mostrare come intestazione sopra la riga, solo dove inizia
+   * una sezione nuova. Una sezione puo' iniziare solo con il primo
+   * esercizio di un blocco: i membri di un superset seguono il loro.
+   */
+  sezioneDi(day: DraftDay, exerciseIndex: number): MuscleGroup | null {
+    const righe = day.exercises;
+    const riga = righe[exerciseIndex];
+    if (exerciseIndex > 0 && riga.linkedToPrevious) return null;
+
+    // Gruppo del blocco precedente = gruppo del suo primo esercizio.
+    let i = exerciseIndex - 1;
+    while (i > 0 && righe[i].linkedToPrevious) i--;
+    const precedente = i >= 0 ? righe[i].muscleGroup : null;
+
+    return riga.muscleGroup !== precedente ? riga.muscleGroup : null;
   }
 
   // ------------------------------------------------------------ superset
@@ -658,7 +687,8 @@ export class WorkoutBuilderPage implements OnInit {
       ...esercizi[exerciseIndex],
       linkedToPrevious: !esercizi[exerciseIndex].linkedToPrevious,
     };
-    copy[dayIndex] = { ...copy[dayIndex], exercises: esercizi };
+    // Scollegato, un esercizio torna nella sezione del proprio gruppo.
+    copy[dayIndex] = { ...copy[dayIndex], exercises: this.sistemaGiorno(esercizi) };
     this.days.set(copy);
   }
 

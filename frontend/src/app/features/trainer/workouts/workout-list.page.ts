@@ -13,7 +13,7 @@ import {
 import { addIcons } from 'ionicons';
 import {
   add, createOutline, trashOutline, documentTextOutline, layersOutline,
-  downloadOutline, linkOutline,
+  downloadOutline, linkOutline, checkmarkCircleOutline,
 } from 'ionicons/icons';
 
 import { WorkoutService } from '../../../core/services/workout.service';
@@ -46,6 +46,9 @@ export class WorkoutListPage implements OnInit {
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
 
+  /** Scheda in corso di attivazione, per mostrare l'attesa sul suo pulsante. */
+  readonly attivando = signal<number | null>(null);
+
   clientId = 0;
 
   // --- Assegnazione da scheda rapida ---
@@ -63,7 +66,7 @@ export class WorkoutListPage implements OnInit {
   constructor() {
     addIcons({
       add, createOutline, trashOutline, documentTextOutline, layersOutline,
-      downloadOutline, linkOutline,
+      downloadOutline, linkOutline, checkmarkCircleOutline,
     });
   }
 
@@ -241,10 +244,52 @@ export class WorkoutListPage implements OnInit {
     void this.router.navigate(['/istruttore/schede', workout.id, 'modifica']);
   }
 
+  /**
+   * Chiede conferma prima di cambiare la scheda attiva: il cliente vede
+   * il cambio subito, alla prossima apertura dell'app, e la conferma dice
+   * quale scheda passa nello storico al suo posto.
+   */
+  async confermaAttiva(workout: WorkoutSummary): Promise<void> {
+    const attuale = this.workouts().find((w) => w.status === 'ACTIVE');
+    const seguito = attuale
+      ? ` "${attuale.name}" passerà nello storico.`
+      : '';
+    const alert = await this.alertController.create({
+      header: 'Rendere attiva la scheda?',
+      message: `"${workout.name}" diventerà la scheda che il cliente vede e usa.${seguito}`,
+      buttons: [
+        { text: 'Annulla', role: 'cancel' },
+        { text: 'Rendi attiva', handler: () => void this.attiva(workout.id) },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async attiva(id: number): Promise<void> {
+    this.attivando.set(id);
+    try {
+      await this.workoutService.activate(id);
+      await this.showToast('Scheda resa attiva.', 'success');
+      await this.load();
+    } catch (error: unknown) {
+      const err = error as { error?: { message?: string } };
+      await this.showToast(err?.error?.message ?? 'Operazione non riuscita.', 'danger');
+    } finally {
+      this.attivando.set(null);
+    }
+  }
+
   async confirmDelete(workout: WorkoutSummary): Promise<void> {
+    // Il backend riattiva la scheda piu' recente fra quelle rimaste:
+    // meglio dirlo prima, invece di far trovare all'istruttore una
+    // scheda vecchia di nuovo in cima all'elenco senza spiegazioni.
+    const seguito =
+      workout.status === 'ACTIVE'
+        ? ' La scheda precedente più recente tornerà attiva.'
+        : '';
     const alert = await this.alertController.create({
       header: 'Eliminare la scheda?',
-      message: `"${workout.name}" e tutti i dati collegati verranno eliminati definitivamente.`,
+      message: `"${workout.name}" e tutti i dati collegati verranno eliminati definitivamente.${seguito}`,
       buttons: [
         { text: 'Annulla', role: 'cancel' },
         {

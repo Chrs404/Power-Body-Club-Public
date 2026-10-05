@@ -77,6 +77,11 @@ export class WorkoutService {
     await firstValueFrom(this.http.post(`${this.base}/${id}/archive`, {}));
   }
 
+  /** Rende attiva la scheda; quella attiva finora passa nello storico. */
+  async activate(id: number): Promise<void> {
+    await firstValueFrom(this.http.post(`${this.base}/${id}/activate`, {}));
+  }
+
   async remove(id: number): Promise<void> {
     await firstValueFrom(this.http.delete(`${this.base}/${id}`));
   }

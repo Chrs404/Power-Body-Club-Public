@@ -1,5 +1,6 @@
 import { inject } from '@angular/core';
 import { AuthService } from '../services/auth.service';
+import { TokenService } from '../services/token.service';
 
 /**
  * Ripristina la sessione dal token salvato PRIMA che il router avvii
@@ -16,10 +17,16 @@ import { AuthService } from '../services/auth.service';
  * e tutti i controlli possono restare sincroni.
  */
 export function sessionInitializer(): Promise<void> {
+  // inject() va chiamato subito, non dopo un await: fuori dal contesto
+  // sincrono dell'initializer non funziona piu'.
   const auth = inject(AuthService);
+  const tokenService = inject(TokenService);
 
-  return auth
-    .restoreSession()
+  // La sessione salvata si legge dalla memoria del telefono in modo
+  // asincrono: va caricata prima di tutto, o il ripristino non la vedrebbe.
+  return tokenService
+    .carica()
+    .then(() => auth.restoreSession())
     .then(() => undefined)
     // Un token non valido o il backend irraggiungibile non devono impedire
     // l'avvio dell'app: si finisce semplicemente sul login.

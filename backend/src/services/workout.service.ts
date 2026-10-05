@@ -1,6 +1,6 @@
 import { prisma } from '../prisma/client';
 import { TransactionClient } from '../prisma/transaction';
-import { parseDateOnly } from '../utils/date';
+import { parseDateOnly, todayUtc } from '../utils/date';
 import { notFound, badRequest } from '../utils/app-error';
 import { normalizzaCollegamenti } from '../utils/superset';
 import {
@@ -273,12 +273,117 @@ export async function archiveWorkout(id: number) {
   });
 }
 
+/**
+ * Rende attiva una scheda del cliente; quella attiva fino a ora passa
+ * nello storico.
+ *
+ * Serve per tornare a una scheda precedente senza ricrearla. La regola
+ * "una sola scheda attiva per cliente" non e' esprimibile come vincolo
+ * del database, quindi archiviazione e attivazione stanno nella stessa
+ * transazione, come in createWorkout.
+ *
+ * La scheda che esce prende come data di fine oggi, se non ne aveva una:
+ * e' lo stesso comportamento dell'archiviazione manuale. Quella che entra
+ * mantiene le sue date: se la fine e' gia' passata comparira' fra le
+ * scadute, e l'istruttore puo' correggerla dalla modifica.
+ */
+export async function activateWorkout(id: number) {
+  const scheda = await prisma.workout.findUnique({
+    where: { id },
+    select: { id: true, userId: true, status: true, isTemplate: true },
+  });
+  if (!scheda) {
+    throw notFound('Scheda non trovata.');
+  }
+  if (scheda.isTemplate) {
+    throw badRequest('Le schede rapide non si assegnano così: usa "Assegna una scheda rapida".');
+  }
+  if (scheda.status === 'ACTIVE') {
+    // Gia' attiva: nulla da fare. Non e' un errore, l'esito voluto c'e'.
+    return prisma.workout.findUniqueOrThrow({ where: { id }, include: workoutInclude });
+  }
+
+  return prisma.$transaction(async (tx: TransactionClient) => {
+    const attualeAttiva = {
+      userId: scheda.userId,
+      status: 'ACTIVE' as const,
+      isTemplate: false,
+      id: { not: id },
+    };
+
+    await tx.workout.updateMany({
+      where: { ...attualeAttiva, endDate: null },
+      data: { endDate: todayUtc() },
+    });
+    await tx.workout.updateMany({
+      where: attualeAttiva,
+      data: { status: 'ARCHIVED' },
+    });
+
+    return tx.workout.update({
+      where: { id },
+      data: { status: 'ACTIVE' },
+      include: workoutInclude,
+    });
+  });
+}
+
+/**
+ * Elimina una scheda. Se era quella attiva, la piu' recente fra le
+ * rimanenti torna attiva.
+ *
+ * Senza questo passaggio il cliente restava senza scheda attiva: la sua
+ * Home e la pagina Scheda risultavano vuote, e le schede precedenti si
+ * potevano solo consultare dallo storico, in sola lettura, senza poter
+ * segnare gli esercizi. Eliminazione e riattivazione stanno nella stessa
+ * transazione, cosi' nessuno puo' trovare il cliente a meta' strada.
+ *
+ * La scheda riattivata conserva la sua data di fine. Se e' gia' passata,
+ * comparira' fra le schede scadute nella pagina Scadenze: e' corretto,
+ * perche' il cliente sta usando una scheda vecchia e l'istruttore deve
+ * saperlo per assegnargliene una nuova.
+ */
 export async function deleteWorkout(id: number): Promise<void> {
-  const existing = await prisma.workout.findUnique({ where: { id } });
+  const existing = await prisma.workout.findUnique({
+    where: { id },
+    select: { id: true, userId: true, status: true, isTemplate: true },
+  });
   if (!existing) {
     throw notFound('Scheda non trovata.');
   }
-  await prisma.workout.delete({ where: { id } });
+
+  await prisma.$transaction(async (tx: TransactionClient) => {
+    await tx.workout.delete({ where: { id } });
+
+    if (existing.status === 'ACTIVE' && !existing.isTemplate) {
+      await riattivaUltimaScheda(tx, existing.userId);
+    }
+  });
+}
+
+/**
+ * Rende attiva la scheda piu' recente del cliente, se non ne ha gia'
+ * una attiva. "Piu' recente" e' quella con la data d'inizio piu'
+ * avanzata; a parita' di data vince l'ultima creata.
+ */
+async function riattivaUltimaScheda(tx: TransactionClient, userId: number): Promise<void> {
+  const giaAttiva = await tx.workout.findFirst({
+    where: { userId, status: 'ACTIVE', isTemplate: false },
+    select: { id: true },
+  });
+  if (giaAttiva) return;
+
+  const ultima = await tx.workout.findFirst({
+    where: { userId, isTemplate: false },
+    orderBy: [{ startDate: 'desc' as const }, { id: 'desc' as const }],
+    select: { id: true },
+  });
+  if (!ultima) return;
+
+  await tx.workout.update({
+    where: { id: ultima.id },
+    data: { status: 'ACTIVE' },
+  });
 }
 
 /** Duplica una scheda esistente su un altro cliente o come nuova versione. */

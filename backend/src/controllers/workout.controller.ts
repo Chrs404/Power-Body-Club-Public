@@ -59,6 +59,11 @@ export async function archive(req: Request, res: Response): Promise<void> {
   res.json({ success: true, message: 'Scheda archiviata.', workout });
 }
 
+export async function activate(req: Request, res: Response): Promise<void> {
+  const workout = await workoutService.activateWorkout(parseId(req.params.id));
+  res.json({ success: true, message: 'Scheda resa attiva.', workout });
+}
+
 export async function remove(req: Request, res: Response): Promise<void> {
   await workoutService.deleteWorkout(parseId(req.params.id));
   res.json({ success: true, message: 'Scheda eliminata.' });

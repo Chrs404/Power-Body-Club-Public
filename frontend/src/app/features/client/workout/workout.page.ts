@@ -18,7 +18,9 @@ import { WorkoutService } from '../../../core/services/workout.service';
 import { TrainingService } from '../../../core/services/training.service';
 import {
   Workout, WorkoutDay, WorkoutExercise, WorkoutBlock, dividiInBlocchi,
+  ordinaPerGruppoMuscolare,
 } from '../../../core/models/workout.model';
+import { MuscleGroup } from '../../../core/models/exercise.model';
 import { TrainingSession, LatestWeight } from '../../../core/models/training.model';
 import { MuscleGroupPipe } from '../../../shared/pipes/muscle-group.pipe';
 import { RestTimerComponent } from '../../../shared/components/rest-timer/rest-timer.component';
@@ -181,7 +183,22 @@ export class ClientWorkoutPage implements OnInit, OnDestroy {
    */
   get blocchi(): WorkoutBlock[] {
     const day = this.currentDay;
-    return day ? dividiInBlocchi(day.exercises) : [];
+    if (!day) return [];
+    // Raccolti per gruppo muscolare prima di dividerli in blocchi: cosi'
+    // anche le sigle dei superset (A, B, C) seguono l'ordine mostrato.
+    return dividiInBlocchi(
+      ordinaPerGruppoMuscolare(day.exercises, (ex) => ex.exercise.muscleGroup)
+    );
+  }
+
+  /**
+   * Gruppo muscolare da mostrare come intestazione sopra il blocco, solo
+   * quando inizia una sezione nuova; null per gli altri blocchi.
+   */
+  sezioneDi(blocchi: WorkoutBlock[], indice: number): MuscleGroup | null {
+    const gruppo = blocchi[indice].capogruppo.exercise.muscleGroup;
+    const precedente = indice > 0 ? blocchi[indice - 1].capogruppo.exercise.muscleGroup : null;
+    return gruppo !== precedente ? gruppo : null;
   }
 
   /**

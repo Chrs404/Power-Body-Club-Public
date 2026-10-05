@@ -106,6 +106,9 @@
       } @else {
         <ion-accordion-group [multiple]="true">
           @for (blocco of blocchi; track blocco.capogruppo.id; let i = $index) {
+            @if (sezioneDi(blocchi, i); as gruppo) {
+              <div class="pbc-sezione-muscolo">{{ gruppo | muscleGroup }}</div>
+            }
             <ion-accordion [value]="blocco.capogruppo.id">
 
               <ion-item slot="header" [class.completed]="bloccoCompletato(blocco)">
@@ -132,6 +135,24 @@
                           · {{ weight }}
                         }
                       </p>
+                      <!--
+                        Ultimo peso di ciascun esercizio del superset.
+                        Prima mancava: il peso veniva salvato, ma questa
+                        riga esisteva solo per gli esercizi singoli, quindi
+                        nel superset sembrava che la registrazione fosse
+                        andata persa.
+                      -->
+                      @if (weightInfo(ex.exerciseId); as info) {
+                        <p class="last-weight">
+                          <ion-icon name="trending-up-outline"></ion-icon>
+                          ultimo: {{ info.lastWeight }} kg
+                          @if (formatDelta(info.delta); as d) {
+                            <span [class.up]="info.delta! > 0" [class.down]="info.delta! < 0">
+                              {{ d }}
+                            </span>
+                          }
+                        </p>
+                      }
                     }
                   } @else {
                     <h2 [class.done]="bloccoCompletato(blocco)">

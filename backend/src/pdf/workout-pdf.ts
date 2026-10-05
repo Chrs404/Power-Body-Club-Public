@@ -3,7 +3,7 @@ import fs from 'fs';
 import PDFDocument from 'pdfkit';
 
 import { MUSCLE_GROUP_LABELS } from '../utils/muscle-groups';
-import { dividiInBlocchi } from '../utils/superset';
+import { dividiInBlocchi, ordinaPerGruppoMuscolare } from '../utils/superset';
 
 /*
  * Generazione del PDF di una scheda.
@@ -218,8 +218,11 @@ function campo(doc: PDFKit.PDFDocument, etichetta: string, valore: string): void
 }
 
 function tabellaGiorno(doc: PDFKit.PDFDocument, giorno: GiornoPdf): void {
+  // Raccolti per gruppo muscolare come nell'app, prima di dividerli in
+  // blocchi: cosi' anche le sigle dei superset seguono l'ordine stampato.
   const blocchi = dividiInBlocchi(
-    giorno.exercises.map((ex, i) => ({ ...ex, id: i }))
+    ordinaPerGruppoMuscolare(giorno.exercises, (ex) => ex.exercise.muscleGroup)
+      .map((ex, i) => ({ ...ex, id: i }))
   );
 
   /*
@@ -271,10 +274,17 @@ function tabellaGiorno(doc: PDFKit.PDFDocument, giorno: GiornoPdf): void {
   doc.y = yCol + 18;
 
   let contatoreSuperset = 0;
+  let gruppoPrecedente: string | null = null;
 
   for (const blocco of blocchi) {
     const superset = blocco.length > 1;
     const sigla = superset ? String.fromCharCode(65 + contatoreSuperset++) : null;
+
+    const gruppo = blocco[0].exercise.muscleGroup;
+    if (gruppo !== gruppoPrecedente) {
+      intestazioneSezione(doc, MUSCLE_GROUP_LABELS[gruppo] ?? gruppo);
+      gruppoPrecedente = gruppo;
+    }
 
     for (const [posizione, ex] of blocco.entries()) {
       const etichetta = superset ? `${sigla}${posizione + 1}  ` : '';
@@ -387,6 +397,34 @@ function tabellaGiorno(doc: PDFKit.PDFDocument, giorno: GiornoPdf): void {
   }
 
   doc.moveDown(0.4);
+}
+
+/**
+ * Fascia con il nome del gruppo muscolare all'inizio di una sezione.
+ *
+ * Se in fondo alla pagina non c'e' spazio anche per la riga che segue,
+ * si passa alla pagina successiva: un'intestazione rimasta sola in fondo,
+ * staccata dai suoi esercizi, non si capirebbe a cosa si riferisce.
+ */
+function intestazioneSezione(doc: PDFKit.PDFDocument, etichetta: string): void {
+  const altezza = 17;
+  const primaRiga = 26;
+  if (doc.y + altezza + primaRiga > doc.page.height - 55) {
+    doc.addPage();
+  }
+
+  const y = doc.y;
+  doc.rect(MARGINE, y, LARGHEZZA_UTILE, altezza).fill('#F3F1EA');
+  doc.rect(MARGINE, y, 3, altezza).fill(OLIVA);
+  doc
+    .fillColor(OLIVA)
+    .font('Helvetica-Bold')
+    .fontSize(7.5)
+    .text(etichetta.toUpperCase(), MARGINE + 10, y + 5, {
+      width: LARGHEZZA_UTILE - 20,
+      characterSpacing: 0.8,
+    });
+  doc.y = y + altezza;
 }
 
 function formattaRecupero(secondi: number): string {

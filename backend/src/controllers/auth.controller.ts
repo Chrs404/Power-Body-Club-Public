@@ -19,8 +19,10 @@ export async function me(req: Request, res: Response): Promise<void> {
     throw unauthorized('Autenticazione richiesta.');
   }
 
-  const user = await authService.getCurrentUser(req.user.userId);
-  res.json({ success: true, user });
+  // Insieme al profilo, un token rinnovato: vedi rinnovaSessione.
+  // Le versioni dell'app che non lo leggono continuano a funzionare.
+  const { user, token } = await authService.rinnovaSessione(req.user.userId);
+  res.json({ success: true, user, token });
 }
 
 export async function firstAccess(req: Request, res: Response): Promise<void> {
