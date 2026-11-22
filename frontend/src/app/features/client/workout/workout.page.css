@@ -1,240 +1,308 @@
-.workout-head h2 {
-  font-size: 1.2rem;
-  font-weight: 600;
+.pagina {
+  padding: 4px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.workout-notes {
-  font-size: 0.9rem;
-  color: var(--ion-color-medium-shade);
-  background: var(--ion-color-light);
-  border-radius: 6px;
-  padding: 0.5rem 0.75rem;
+.note-scheda {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--pbc-surface-2);
+  font-size: 14px;
+  white-space: pre-line;
 }
 
-.exercise-index {
-  color: var(--ion-color-medium);
-  margin-right: 0.25rem;
+/* ------------------------------------------------------------ avanzamento */
+
+.avanzamento {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 4px;
 }
 
-.exercise-params {
-  font-size: 0.85rem;
+.avanzamento-testo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
 }
 
-.group-chip {
-  font-size: 0.7rem;
-  height: 22px;
+.avanzamento-barra {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--pbc-surface-2);
+  overflow: hidden;
 }
 
-.exercise-detail {
-  padding: 0.75rem 1rem 1rem;
-  background: var(--ion-color-light);
+.avanzamento-pieno {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pbc-olive);
+  transition: width 0.3s ease;
 }
 
-.params-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
+.avanzamento-pieno.completo {
+  background: var(--ion-color-success);
 }
 
-/* Riga propria per le ripetizioni: testo libero, potenzialmente lungo. */
-.param-reps {
-  margin-bottom: 0.75rem;
+.pbc-sezione-muscolo {
+  padding: 8px 2px 0;
 }
 
-.param-label {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  color: var(--ion-color-medium);
+/* -------------------------------------------------------------- esercizio */
+
+.esercizio {
+  background: var(--pbc-surface);
+  border: 1px solid var(--pbc-line);
+  border-radius: 16px;
+  overflow: hidden;
 }
 
-.param-value {
-  font-size: 1rem;
-  font-weight: 600;
+.esercizio.piramide {
+  border: 1.5px solid var(--pbc-olive);
 }
 
-.exercise-description {
-  font-size: 0.85rem;
-  color: var(--ion-color-medium-shade);
-  margin-bottom: 0.5rem;
-}
-
-.exercise-note {
-  font-size: 0.85rem;
-  /* Velatura invece di tinta piena: sul tema scuro il giallo pieno
-     con testo crema scendeva a 1.9:1. */
-  background: color-mix(in srgb, var(--ion-color-warning) 16%, transparent);
-  border-left: 3px solid var(--ion-color-warning);
-  border-radius: 0 6px 6px 0;
-  border-radius: 6px;
-  padding: 0.5rem 0.75rem;
-  margin-bottom: 0.75rem;
-}
-
-.empty-icon {
-  font-size: 3rem;
-  color: var(--ion-color-medium);
-}
-
-.progress-bar-wrap {
-  border-bottom: 1px solid var(--ion-color-light-shade);
-}
-
-.progress-text {
-  font-size: 0.85rem;
-  color: var(--ion-color-medium-shade);
-}
-
-/* Esercizio completato.
-   Prima usavo un verde pieno (--ion-color-success-tint) lasciando
-   invariati i colori del testo: sul tema scuro la riga "ultimo kg"
-   scendeva a 1.04:1 di contrasto, cioe' illeggibile.
-   Ora la conferma visiva e' una velatura verde sul fondo esistente:
-   il testo mantiene il proprio colore e resta leggibile in entrambi
-   i temi, mentre spunta e barratura bastano a segnalare lo stato. */
-ion-item.completed {
-  --background: color-mix(in srgb, var(--ion-color-success) 14%, var(--ion-item-background));
-}
-
-/* Ripiego per i browser senza color-mix */
-@supports not (background: color-mix(in srgb, red 50%, blue)) {
-  ion-item.completed {
-    --background: #e8efe7;
-  }
-
-  @media (prefers-color-scheme: dark) {
-    ion-item.completed {
-      --background: #2c3325;
-    }
-  }
-}
-
-h2.done {
-  text-decoration: line-through;
-  /* 0.65 abbassava il contrasto a 4.3:1; con 0.8 resta sopra 6:1
-     e la barratura si legge comunque come "fatto". */
-  opacity: 0.8;
-}
-
-/* Verde piu' scuro sul chiaro, piu' chiaro sullo scuro:
-   l'oliva primario sulla velatura non arrivava alla soglia. */
-ion-item.completed .last-weight {
-  color: #3e6337 !important;
-}
-
-@media (prefers-color-scheme: dark) {
-  ion-item.completed .last-weight {
-    color: #9dc993 !important;
-  }
-}
-
-.last-weight {
-  font-size: 0.78rem !important;
-  color: var(--ion-color-primary) !important;
+.riga {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 4px;
+  padding: 6px 10px 6px 4px;
 }
 
-.last-weight .up {
-  color: var(--ion-color-success);
+.spunta {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.spunta-cerchio {
+  width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid #a69c8c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 18px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.fatto .spunta-cerchio {
+  border-color: var(--pbc-olive);
+  background: var(--pbc-olive);
+}
+
+.testo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--pbc-ink);
+  font-family: var(--ion-font-family);
+  text-align: left;
+  cursor: pointer;
+}
+
+.nome {
   font-weight: 600;
+  font-size: 17px;
+  line-height: 1.25;
 }
 
-.last-weight .down {
-  color: var(--ion-color-danger);
-  font-weight: 600;
+.superset .nome {
+  margin-top: 4px;
+  font-size: 16px;
 }
 
-.detail-actions {
+.fatto .nome {
+  color: var(--pbc-ink-2);
+}
+
+.sigla {
+  color: var(--pbc-ochre-dark);
+  font-size: 14px;
+}
+
+.parametri {
+  font-size: 14px;
+  color: var(--pbc-ink-2);
+}
+
+.etichette {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
-  margin-bottom: 0.5rem;
-}
-
-.day-done {
-  display: flex;
   align-items: center;
-  gap: 0.75rem;
-  background: color-mix(in srgb, var(--ion-color-success) 16%, transparent);
-  border-radius: 8px;
-  padding: 0.85rem 1rem;
+  gap: 4px 8px;
+  margin-top: 2px;
 }
 
-.day-done ion-icon {
-  font-size: 1.8rem;
-  color: var(--ion-color-success-shade);
+.ultimo {
+  font-size: 13px;
+  color: var(--pbc-ink-2);
 }
 
-.day-done p {
-  font-size: 0.85rem;
-  color: var(--ion-color-medium-shade);
-}
-
-/* --- Superset ---------------------------------------------------------- */
-
-.superset-etichetta {
-  display: inline-block;
-  font-family: var(--pbc-font-display);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.68rem;
+.su {
+  color: var(--pbc-ok);
   font-weight: 600;
-  color: var(--ion-color-secondary-shade);
-  background: color-mix(in srgb, var(--ion-color-secondary) 16%, transparent);
-  border-radius: 4px;
-  padding: 0.1rem 0.4rem;
-  margin-bottom: 0.3rem;
 }
 
-
-.esercizio-dettaglio + .esercizio-dettaglio {
-  border-top: 1px solid var(--ion-color-light-shade);
-  padding-top: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-.dettaglio-titolo {
-  font-size: 0.95rem;
+.giu {
+  color: var(--pbc-bad);
   font-weight: 600;
-  margin: 0 0 0.35rem;
 }
 
-.timer-blocco {
-  border-top: 1px solid var(--ion-color-light-shade);
-  padding-top: 0.5rem;
-  margin-top: 0.75rem;
+/* --------------------------------------------------------- serie piramidali */
+
+.serie {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 14px 14px 18px;
 }
 
-/* --- Allenamento completato -------------------------------------------- */
+.serie-intestazione,
+.serie-riga {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr) 104px;
+  align-items: center;
+  gap: 8px;
+}
 
-/*
- * Compare al posto dell'azzeramento immediato: lo stato completato resta
- * visibile qualche secondo, cosi' si capisce di aver finito invece di
- * vedere le spunte sparire di colpo.
- */
+.serie-intestazione span:last-child {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pbc-ink-2);
+  text-align: center;
+}
+
+.serie-numero {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pbc-ink-2);
+}
+
+.serie-rip {
+  font-size: 16px;
+}
+
+.serie-campo {
+  position: relative;
+}
+
+.serie-campo .pbc-input {
+  min-height: 44px;
+  font-size: 17px;
+  padding: 0 24px;
+}
+
+.stato-serie {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--pbc-ink-2);
+}
+
+.stato-serie.ok {
+  color: var(--pbc-ok);
+}
+
+.serie-azioni {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+/* Il pulsante del recupero (dentro app-rest-timer) prende lo spazio libero. */
+.serie-azioni ::ng-deep app-rest-timer .pbc-btn {
+  flex: 1;
+}
+
+/* ---------------------------------------------------------------- dettagli */
+
+.dettagli {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 2px 14px 14px 18px;
+  border-top: 1px solid var(--pbc-line);
+  padding-top: 12px;
+}
+
+.dettaglio {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dettaglio-nome {
+  font-weight: 600;
+}
+
+.descrizione,
+.nota {
+  margin: 0;
+  font-size: 14px;
+  color: var(--pbc-ink-2);
+  white-space: pre-line;
+}
+
+.nota {
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--pbc-ochre-tint);
+  color: var(--pbc-ink);
+}
+
+.dettaglio-azioni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ------------------------------------------------------------ celebrazione */
+
 .celebrazione {
-  margin: 0.75rem 1rem 1rem;
-  padding: 1.5rem 1.25rem;
-  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 24px 20px;
+  border: 1px solid color-mix(in srgb, var(--ion-color-success) 35%, transparent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--ion-color-success) 16%, var(--ion-background-color));
+  color: var(--pbc-ink);
+  font-family: var(--ion-font-family);
   text-align: center;
   cursor: pointer;
-  background: color-mix(in srgb, var(--ion-color-success) 16%, var(--ion-background-color));
-  border: 1px solid color-mix(in srgb, var(--ion-color-success) 35%, transparent);
   animation: celebrazione-entra 0.4s cubic-bezier(0.34, 1.4, 0.64, 1);
-}
-
-@supports not (background: color-mix(in srgb, red 50%, blue)) {
-  .celebrazione {
-    background: #e4efe1;
-  }
 }
 
 .celebrazione-cerchio {
   width: 76px;
   height: 76px;
-  margin: 0 auto 0.75rem;
+  margin-bottom: 8px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -248,23 +316,16 @@ ion-item.completed .last-weight {
   color: #fff;
 }
 
-.celebrazione h2 {
+.celebrazione-titolo {
   font-family: var(--pbc-font-display);
-  font-size: 1.3rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  margin: 0 0 0.2rem;
-  color: var(--ion-text-color);
+  font-size: 22px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-.celebrazione p {
-  margin: 0 0 0.6rem;
-  font-size: 0.9rem;
-  color: var(--ion-color-medium);
-}
-
-.celebrazione ion-note {
-  font-size: 0.75rem;
+.celebrazione-testo {
+  font-size: 15px;
+  color: var(--pbc-ink-2);
 }
 
 @keyframes celebrazione-entra {
@@ -277,7 +338,6 @@ ion-item.completed .last-weight {
   50%      { transform: scale(1.06); box-shadow: 0 0 0 14px rgba(91, 140, 81, 0); }
 }
 
-/* Chi preferisce meno movimento non vede l'animazione ripetuta */
 @media (prefers-reduced-motion: reduce) {
   .celebrazione,
   .celebrazione-cerchio {

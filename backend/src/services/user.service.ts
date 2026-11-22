@@ -265,6 +265,9 @@ export async function resetClientPassword(id: number) {
     data: {
       passwordHash: await hashPassword(temporaryPassword),
       mustChangePassword: true,
+      // Chiude le sessioni aperte: chi usava l'account con la vecchia
+      // password deve rientrare con quella temporanea.
+      passwordChangedAt: new Date(),
     },
   });
 

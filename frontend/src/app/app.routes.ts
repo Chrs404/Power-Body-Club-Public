@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 import { roleGuard } from './core/guards/role.guard';
+import { guestGuard } from './core/guards/guest.guard';
 import {
   firstAccessGuard,
   requiresFirstAccessGuard,
@@ -21,6 +22,8 @@ export const routes: Routes = [
   },
   {
     path: 'login',
+    // Chi ha gia' una sessione salvata salta il login e va alla sua home.
+    canActivate: [guestGuard],
     loadComponent: () =>
       import('./features/auth/login/login.page').then((m) => m.LoginPage),
   },
@@ -51,12 +54,14 @@ export const routes: Routes = [
           ),
       },
       {
-        path: 'storico',
+        path: 'progressi',
         loadComponent: () =>
           import('./features/client/history/history.page').then(
             (m) => m.ClientHistoryPage
           ),
       },
+      // Nome della 1.x: un collegamento salvato continua a funzionare.
+      { path: 'storico', redirectTo: 'progressi', pathMatch: 'full' },
       {
         path: 'palestra',
         loadComponent: () =>

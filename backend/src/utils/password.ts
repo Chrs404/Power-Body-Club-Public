@@ -1,3 +1,4 @@
+import { randomInt } from 'crypto';
 import bcrypt from 'bcryptjs';
 
 const SALT_ROUNDS = 10;
@@ -19,7 +20,9 @@ export function generateTemporaryPassword(length = 8): string {
   const alphabet = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   let result = '';
   for (let i = 0; i < length; i++) {
-    result += alphabet[Math.floor(Math.random() * alphabet.length)];
+    // randomInt e non Math.random: quest'ultimo non e' pensato per i
+    // segreti, la sequenza che produce e' prevedibile.
+    result += alphabet[randomInt(alphabet.length)];
   }
   return result;
 }

@@ -5,6 +5,20 @@ const dateField = (label: string) =>
     .string({ error: `Inserisci ${label}.` })
     .regex(/^\d{4}-\d{2}-\d{2}$/, `${label}: formato data non valido.`);
 
+/** Una serie di un esercizio piramidale: le sue ripetizioni e il suo peso. */
+const pyramidSetSchema = z.object({
+  reps: z
+    .string({ error: 'Indica le ripetizioni di ogni serie.' })
+    .min(1, 'Indica le ripetizioni di ogni serie.')
+    .max(40, 'Ripetizioni della serie: testo troppo lungo.'),
+  suggestedWeight: z
+    .number()
+    .min(0, 'Il peso non può essere negativo.')
+    .max(9999, 'Peso non valido.')
+    .nullable()
+    .optional(),
+});
+
 const workoutExerciseSchema = z.object({
   exerciseId: z.number({ error: 'Esercizio non valido.' }).int().positive(),
   sets: z
@@ -40,6 +54,17 @@ const workoutExerciseSchema = z.object({
   notes: z.string().max(200, 'Note troppo lunghe.').optional(),
   // Superset: collegato all'esercizio precedente, eseguito di fila.
   linkedToPrevious: z.boolean().optional(),
+  /*
+   * Piramidale: ogni serie ha ripetizioni e peso propri, elencati in
+   * pyramidSets. In quel caso "sets" e "reps" vengono ricalcolati dal
+   * server (numero di serie e riepilogo "12-10-8-6"): il client li invia
+   * comunque, ma il loro valore non conta.
+   */
+  kind: z.enum(['NORMAL', 'PYRAMID']).optional(),
+  pyramidSets: z
+    .array(pyramidSetSchema)
+    .max(12, 'Massimo 12 serie in una piramidale.')
+    .optional(),
 });
 
 const workoutDaySchema = z.object({
@@ -97,5 +122,15 @@ export const assignTemplateSchema = z.object({
   endDate: dateField('la data di fine').optional().or(z.literal('')),
 });
 
+/** Salvataggio di una scheda esistente fra le schede rapide. */
+export const saveAsTemplateSchema = z.object({
+  name: z
+    .string()
+    .min(2, 'Il nome deve contenere almeno 2 caratteri.')
+    .max(80, 'Il nome non può superare gli 80 caratteri.')
+    .optional(),
+});
+
 export type CreateTemplateInput = z.infer<typeof createTemplateSchema>;
+export type SaveAsTemplateInput = z.infer<typeof saveAsTemplateSchema>;
 export type AssignTemplateInput = z.infer<typeof assignTemplateSchema>;

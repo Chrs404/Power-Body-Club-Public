@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as userService from '../services/user.service';
+import * as cleanupService from '../services/cleanup.service';
 import { badRequest, unauthorized } from '../utils/app-error';
 import { listClientsQuerySchema } from '../schemas/user.schema';
 
@@ -24,8 +25,29 @@ export async function listClients(req: Request, res: Response): Promise<void> {
 }
 
 export async function getClient(req: Request, res: Response): Promise<void> {
-  const client = await userService.getClientById(parseId(req.params.id));
-  res.json({ success: true, client });
+  const id = parseId(req.params.id);
+  const [client, inEliminazione] = await Promise.all([
+    userService.getClientById(id),
+    cleanupService.getClientiInEliminazione(id),
+  ]);
+
+  // deletion: null se il cliente non rischia l'eliminazione automatica.
+  const stato = inEliminazione[0] ?? null;
+  res.json({
+    success: true,
+    client,
+    deletion: stato ? { deleteOn: stato.deleteOn, daysLeft: stato.daysLeft } : null,
+  });
+}
+
+/** Rimanda di 15 giorni l'eliminazione automatica di un cliente. */
+export async function postponeDeletion(req: Request, res: Response): Promise<void> {
+  const fino = await cleanupService.rimandaEliminazione(parseId(req.params.id));
+  res.json({
+    success: true,
+    message: 'Eliminazione rimandata di 15 giorni.',
+    postponedUntil: fino,
+  });
 }
 
 export async function createClient(req: Request, res: Response): Promise<void> {

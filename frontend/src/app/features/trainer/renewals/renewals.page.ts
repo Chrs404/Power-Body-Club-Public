@@ -184,9 +184,7 @@ export class RenewalsPage implements OnInit {
   // -------------------------------------------------------- presentazione
 
   iniziali(nome: string): string {
-    const parti = nome.trim().split(/\s+/);
-    const prime = parti.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '');
-    return prime.join('') || '?';
+    return nome.trim()[0]?.toUpperCase() || '?';
   }
 
   /**

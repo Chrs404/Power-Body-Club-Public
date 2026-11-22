@@ -1,117 +1,115 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
-    <img src="logo-small.png" alt="" class="toolbar-logo" slot="start" />
-    <ion-title>Power Body Club</ion-title>
+    <div class="pbc-head">
+      <div class="pbc-brand">
+        <img src="logo-small.png" alt="" />
+        <span>Power Body Club</span>
+      </div>
+      <a class="pbc-avatar" routerLink="/istruttore/profilo" aria-label="Il tuo profilo">{{ iniziali() }}</a>
+    </div>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
+<ion-content>
   <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-12 col-md-8 col-lg-6">
+  <div class="pbc-page">
+    <div class="saluto">
+      <span class="pbc-eyebrow pbc-entra">{{ oggi }}</span>
+      <h1 class="pbc-h1 xl pbc-entra dopo">Ciao{{ user()?.firstName ? ' ' + user()?.firstName : '' }}</h1>
+    </div>
 
-        <div class="page-intro mb-3">
-          <p class="eyebrow mb-0">Area istruttore</p>
-          <h2 class="mb-0">Ciao {{ user()?.firstName }}</h2>
+    @if (loading()) {
+      <div class="d-flex justify-content-center py-4">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+    } @else if (errore()) {
+      <div class="alert alert-danger mb-0">Impossibile caricare le scadenze. Trascina in basso per riprovare.</div>
+    } @else {
+      <div class="conti">
+        <a class="conto bad" routerLink="/istruttore/clienti" [queryParams]="{ filtro: 'rinnovi' }">
+          <span class="numero">{{ scaduti() }}</span>
+          <span>{{ scaduti() === 1 ? 'scaduto' : 'scaduti' }}</span>
+        </a>
+        <a class="conto warn" routerLink="/istruttore/clienti" [queryParams]="{ filtro: 'rinnovi' }">
+          <span class="numero">{{ inScadenza() }}</span>
+          <span>in scadenza</span>
+        </a>
+        <a class="conto" routerLink="/istruttore/clienti" [queryParams]="{ filtro: 'eliminazione' }">
+          <span class="numero">{{ eliminazioni().length }}</span>
+          <span>in eliminazione</span>
+        </a>
+      </div>
+
+      <section class="pbc-section" aria-label="Rinnovi e schede">
+        <div class="pbc-section-head">
+          <span class="pbc-eyebrow">Rinnovi e schede</span>
+          <a class="pbc-link" routerLink="/istruttore/clienti">Vedi tutti</a>
         </div>
-
-        @if (loading()) {
-          <div class="d-flex justify-content-center py-4">
-            <ion-spinner name="crescent"></ion-spinner>
-          </div>
+        @if (daFare().length === 0) {
+          <div class="pbc-card vuoto">Tutto in regola: nessuna scadenza nei prossimi 7 giorni.</div>
         } @else {
-          <div class="row g-2 mb-3">
-            <div class="col-4">
-              <ion-card class="stat-card m-0" routerLink="/istruttore/clienti">
-                <ion-card-content class="text-center">
-                  <div class="stat-value">{{ summary()?.active ?? '—' }}</div>
-                  <div class="stat-label">Attivi</div>
-                </ion-card-content>
-              </ion-card>
-            </div>
-
-            <div class="col-8">
-              <!--
-                Un solo riquadro per entrambe le categorie: prima
-                abbonamenti e schede vivevano su schermate separate,
-                e le schede non comparivano da nessuna parte come
-                scadenza. Sono unificate nella pagina Clienti, che
-                mostra lo stato di tutti senza limitarsi a chi e'
-                prossimo alla scadenza.
-              -->
-              <ion-card
-                class="stat-card scadenze-card m-0"
-                [class.urgente]="totaleScadenze > 0"
-                routerLink="/istruttore/clienti"
-              >
-                <ion-card-content>
-                  <div class="scadenze-riga">
-                    <ion-icon
-                      [name]="totaleScadenze > 0 ? 'alert-circle-outline' : 'calendar-outline'"
-                    ></ion-icon>
-                    <div class="scadenze-testo">
-                      @if (totaleScadenze > 0) {
-                        <strong>
-                          {{ totaleScadenze }}
-                          {{ totaleScadenze === 1 ? 'scadenza' : 'scadenze' }}
-                          @if (totaleScaduti > 0) {
-                            , {{ totaleScaduti }} già scadut{{ totaleScaduti === 1 ? 'a' : 'e' }}
-                          }
-                        </strong>
-                        <p class="mb-0">Abbonamenti e schede, nei prossimi 30 giorni.</p>
-                      } @else {
-                        <strong>Tutto in regola</strong>
-                        <p class="mb-0">Nessuna scadenza nei prossimi 30 giorni.</p>
-                      }
-                    </div>
-                  </div>
-                </ion-card-content>
-              </ion-card>
-            </div>
+          <div class="pbc-card elenco">
+            @for (item of daFare(); track item.clientId + item.type) {
+              <div class="riga">
+                <button type="button" class="riga-cliente" (click)="apriCliente(item.clientId)">
+                  <span class="iniziale" aria-hidden="true">{{ iniziale(item.clientName) }}</span>
+                  <span class="riga-testo">
+                    <span class="nome">{{ item.clientName }}</span>
+                    <span class="stato" [class]="tono(item)">{{ stato(item) }}</span>
+                  </span>
+                </button>
+                <button type="button" class="pbc-btn small" (click)="azione(item)">
+                  {{ item.type === 'subscription' ? 'Rinnova' : 'Nuova scheda' }}
+                </button>
+              </div>
+            }
           </div>
         }
+      </section>
 
-        <h3 class="sezione-titolo">Azioni rapide</h3>
-        <div class="row g-2 mb-3">
-          <div class="col-6">
-            <ion-card class="azione m-0" routerLink="/istruttore/clienti/nuovo">
-              <ion-card-content>
-                <ion-icon name="person-add-outline"></ion-icon>
-                <span>Nuovo cliente</span>
-              </ion-card-content>
-            </ion-card>
-          </div>
-          <div class="col-6">
-            <ion-card class="azione m-0" routerLink="/istruttore/schede-rapide">
-              <ion-card-content>
-                <ion-icon name="layers-outline"></ion-icon>
-                <span>Schede rapide</span>
-              </ion-card-content>
-            </ion-card>
-          </div>
-          <div class="col-6">
-            <ion-card class="azione m-0" routerLink="/istruttore/palestra">
-              <ion-card-content>
-                <ion-icon name="megaphone-outline"></ion-icon>
-                <span>Comunicazioni</span>
-              </ion-card-content>
-            </ion-card>
-          </div>
-          <div class="col-6">
-            <ion-card class="azione m-0" routerLink="/istruttore/palestra">
-              <ion-card-content>
-                <ion-icon name="time-outline"></ion-icon>
-                <span>Orari e chiusure</span>
-              </ion-card-content>
-            </ion-card>
-          </div>
-        </div>
+      @if (eliminazioni().length > 0) {
+        <section class="pbc-section" aria-label="In eliminazione">
+          <span class="pbc-eyebrow">In eliminazione</span>
+          @for (e of eliminazioni().slice(0, 3); track e.clientId) {
+            <div class="pbc-card eliminazione">
+              <div class="eliminazione-testa">
+                <div class="riga-testo">
+                  <span class="nome">{{ e.clientName }}</span>
+                  <span class="pbc-muted">{{ motivo(e) }}</span>
+                </div>
+                <span class="pbc-pill bad">{{ quando(e) }}</span>
+              </div>
+              <div class="eliminazione-azioni">
+                <button type="button" class="pbc-btn outline small" (click)="rimanda(e)"
+                  [disabled]="rimandando() === e.clientId">
+                  <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+                  Rimanda di 15 giorni
+                </button>
+                <button type="button" class="pbc-btn ghost small" (click)="apriCliente(e.clientId)">Apri</button>
+              </div>
+            </div>
+          }
+          @if (eliminazioni().length > 3) {
+            <a class="pbc-link" routerLink="/istruttore/clienti" [queryParams]="{ filtro: 'eliminazione' }">
+              Altri {{ eliminazioni().length - 3 }} in eliminazione
+            </a>
+          }
+        </section>
+      }
 
+      <div class="azioni">
+        <a class="pbc-btn primary" routerLink="/istruttore/clienti/nuovo">
+          <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+          Nuovo cliente
+        </a>
+        <a class="pbc-btn" routerLink="/istruttore/schede-rapide">
+          <ion-icon name="layers-outline" aria-hidden="true"></ion-icon>
+          Schede rapide
+        </a>
       </div>
-    </div>
+    }
   </div>
 </ion-content>

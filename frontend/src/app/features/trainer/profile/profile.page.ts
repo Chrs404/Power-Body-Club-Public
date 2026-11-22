@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonListHeader,
   IonItem, IonLabel, IonInput, IonButton, IonSpinner, IonNote,
-  IonBadge,
+  IonBadge, IonButtons, IonBackButton,
   AlertController, ToastController,
 } from '@ionic/angular/standalone';
 
@@ -17,7 +17,7 @@ import { UserProfileService } from '../../../core/services/user-profile.service'
     ReactiveFormsModule, UpperCasePipe,
     IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonListHeader,
     IonItem, IonLabel, IonInput, IonButton, IonSpinner, IonNote,
-    IonBadge,
+    IonBadge, IonButtons, IonBackButton,
   ],
   templateUrl: './profile.page.html',
   styleUrl: './profile.page.css',

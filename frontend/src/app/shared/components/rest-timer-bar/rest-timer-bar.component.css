@@ -1,0 +1,256 @@
+/* ------------------------------------------------------------- barra */
+
+.barra {
+  margin: 0 12px 10px;
+  border-radius: 16px;
+  background: var(--pbc-dark);
+  color: var(--pbc-on-dark);
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(44, 44, 36, 0.22);
+}
+
+.traccia {
+  height: 4px;
+  background: rgba(246, 239, 226, 0.16);
+}
+
+.riempimento {
+  height: 100%;
+  background: var(--pbc-ochre);
+  transition: width 0.25s linear;
+}
+
+.barra.finito .riempimento {
+  width: 100% !important;
+  background: #7fae6f;
+}
+
+.riga {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 8px 16px;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+  font-family: var(--ion-font-family);
+  color: var(--pbc-on-dark);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.testo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.tempo {
+  font-family: var(--pbc-font-display);
+  font-weight: 700;
+  font-size: 30px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.barra.in-arrivo .tempo {
+  color: var(--pbc-ochre);
+}
+
+.etichetta {
+  max-width: 100%;
+  font-size: 12px;
+  color: var(--pbc-on-dark-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.passo {
+  width: 52px;
+  height: 44px;
+  flex: none;
+  border-radius: 12px;
+  background: rgba(246, 239, 226, 0.14);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.icona {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: transparent;
+  font-size: 22px;
+}
+
+/* Sul computer la barra galleggia in basso a destra, sopra il contenuto. */
+@media (min-width: 992px) {
+  .barra {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 20;
+    width: 420px;
+    margin: 0;
+  }
+}
+
+/* ------------------------------------------------------ schermo intero */
+
+.pieno {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  background: var(--pbc-dark);
+  color: var(--pbc-on-dark);
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.pieno-alto {
+  flex: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+}
+
+.riduci {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px 0 10px;
+  border-radius: 12px;
+  background: rgba(246, 239, 226, 0.14);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.riduci ion-icon {
+  font-size: 20px;
+}
+
+.icona.grande {
+  font-size: 26px;
+}
+
+.pieno-centro {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 0 24px 24px;
+}
+
+.titolo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.occhiello {
+  font-family: var(--pbc-font-display);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pbc-on-dark-2);
+}
+
+.nome {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.anello {
+  width: min(248px, 64vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.anello-interno {
+  width: calc(100% - 28px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--pbc-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cifre {
+  font-family: var(--pbc-font-display);
+  font-weight: 700;
+  font-size: clamp(56px, 22vw, 88px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.anello.in-arrivo .cifre {
+  color: var(--pbc-ochre);
+}
+
+.fatto {
+  font-size: 96px;
+  color: #9fcb94;
+}
+
+.passi {
+  display: flex;
+  gap: 14px;
+}
+
+.passo-grande {
+  width: 132px;
+  height: 60px;
+  border-radius: 16px;
+  background: rgba(246, 239, 226, 0.14);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.secondari {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
+.secondario {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 16px;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--pbc-on-dark-2);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.secondario ion-icon {
+  font-size: 20px;
+}

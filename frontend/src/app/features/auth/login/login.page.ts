@@ -3,7 +3,6 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   IonContent,
-  IonButton,
   IonInput,
   IonItem,
   IonList,
@@ -17,7 +16,6 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [
     ReactiveFormsModule,
     IonContent,
-    IonButton,
     IonInput,
     IonItem,
     IonList,

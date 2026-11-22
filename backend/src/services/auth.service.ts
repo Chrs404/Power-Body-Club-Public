@@ -122,7 +122,7 @@ export async function completeFirstAccess(
     email?: string;
     phone?: string;
   }
-): Promise<AuthenticatedUser> {
+): Promise<{ token: string; user: AuthenticatedUser }> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
   if (!user) {
@@ -156,17 +156,38 @@ export async function completeFirstAccess(
       ...(data.email !== undefined ? { email: data.email.trim() || null } : {}),
       ...(data.phone !== undefined ? { phone: data.phone.trim() || null } : {}),
       mustChangePassword: false,
+      passwordChangedAt: new Date(),
     },
   });
 
-  return toAuthenticatedUser(updated);
+  return { token: tokenDopoCambioPassword(updated), user: toAuthenticatedUser(updated) };
+}
+
+/**
+ * Token da restituire a chi ha appena cambiato la propria password.
+ *
+ * Il cambio invalida tutti i token emessi prima (vedi authenticate),
+ * compreso quello con cui e' arrivata la richiesta: senza un token nuovo
+ * l'utente verrebbe buttato fuori dal dispositivo su cui ha appena
+ * scelto la password. Gli altri dispositivi invece devono rientrare,
+ * ed e' proprio lo scopo.
+ *
+ * Va firmato DOPO aver scritto passwordChangedAt, cosi' la sua data di
+ * emissione non risulta precedente al cambio.
+ */
+function tokenDopoCambioPassword(user: { id: number; username: string; role: string }): string {
+  return signToken({
+    userId: user.id,
+    username: user.username,
+    role: user.role as 'CLIENT' | 'TRAINER',
+  });
 }
 
 export async function changePassword(
   userId: number,
   currentPassword: string,
   newPassword: string
-): Promise<void> {
+): Promise<string> {
   const user = await prisma.user.findUnique({ where: { id: userId } });
 
   if (!user) {
@@ -182,11 +203,14 @@ export async function changePassword(
     throw badRequest('La nuova password deve essere diversa da quella attuale.');
   }
 
-  await prisma.user.update({
+  const updated = await prisma.user.update({
     where: { id: userId },
     data: {
       passwordHash: await hashPassword(newPassword),
       mustChangePassword: false,
+      passwordChangedAt: new Date(),
     },
   });
+
+  return tokenDopoCambioPassword(updated);
 }

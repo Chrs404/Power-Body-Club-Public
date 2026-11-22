@@ -1,3 +1,48 @@
-ion-list {
+.elenco {
+  overflow: hidden;
+}
+
+.riga {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  padding: 8px 8px 8px 16px;
+}
+
+.riga + .riga {
+  border-top: 1px solid var(--pbc-line);
+}
+
+.riga-testo {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 48px;
+  justify-content: center;
+  padding: 0;
+  border: 0;
   background: transparent;
+  color: var(--pbc-ink);
+  font-family: var(--ion-font-family);
+  text-align: left;
+  cursor: pointer;
+}
+
+.nome {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.azioni {
+  display: flex;
+  gap: 2px;
+}
+
+.azioni ion-spinner {
+  width: 20px;
+  height: 20px;
 }

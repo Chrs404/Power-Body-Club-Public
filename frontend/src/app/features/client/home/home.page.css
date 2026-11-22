@@ -1,44 +1,192 @@
-.greeting {
-  font-size: 1.4rem;
+.saluto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+}
+
+.saluto .pbc-eyebrow::first-letter {
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------ prossimo allenamento */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 22px 20px 20px;
+  border-radius: var(--pbc-radius-lg);
+  background: var(--pbc-dark);
+  color: var(--pbc-on-dark);
+}
+
+/* Il badge del logo, grande e quasi invisibile nell'angolo: richiama il
+   marchio senza competere con il testo. */
+.hero::after {
+  content: '';
+  position: absolute;
+  right: -56px;
+  top: -40px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: url('/logo-small.png') center / cover no-repeat;
+  opacity: 0.07;
+  filter: grayscale(1);
+  pointer-events: none;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.pbc-eyebrow.chiaro {
+  color: var(--pbc-ochre-on-dark);
+}
+
+.hero-titolo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.giorno {
+  font-family: var(--pbc-font-display);
+  font-weight: 700;
+  font-size: 38px;
+  line-height: 0.95;
+  text-transform: uppercase;
+  overflow-wrap: break-word;
+}
+
+.gruppi {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.hero-nota {
+  font-size: 14px;
+  color: var(--pbc-on-dark-2);
+}
+
+/* Avanzamento dell'allenamento in corso */
+.avanzamento {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.avanzamento-testo {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
   font-weight: 600;
 }
 
-ion-card-title {
-  font-size: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
+.avanzamento-scheda {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 400;
+  color: var(--pbc-on-dark-2);
 }
 
-.news-preview {
-  font-size: 0.9rem;
-  color: var(--ion-color-medium-shade);
+.barra {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(246, 239, 226, 0.14);
+  overflow: hidden;
+}
+
+.barra-piena {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--pbc-ochre-on-dark);
+  transform-origin: left;
+  animation: barra-cresce 700ms cubic-bezier(0.22, 1, 0.36, 1) 200ms both;
+}
+
+@keyframes barra-cresce {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.pbc-btn.grande {
+  min-height: 52px;
+  font-size: 17px;
+}
+
+/* ------------------------------------------------------------------ stati */
+
+.stati {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.stato {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+}
+
+.valore {
+  max-width: 100%;
+  font-weight: 600;
+  font-size: 16px;
+  overflow-wrap: break-word;
+}
+
+.stato .pbc-pill {
+  margin-top: 6px;
+}
+
+/* ----------------------------------------------------------- dalla palestra */
+
+.avviso {
+  padding: 14px 16px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.avviso ion-icon {
+  flex: none;
+  font-size: 22px;
+  color: var(--pbc-warn);
+  margin-top: 1px;
+}
+
+.avviso-titolo {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.notizia {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.anteprima {
+  margin: 0;
+  font-size: 14px;
+  color: var(--pbc-ink-2);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.closure-row {
-  padding: 0.35rem 0;
-  border-bottom: 1px solid var(--ion-color-light-shade);
-}
-
-.closure-row:last-child {
-  border-bottom: none;
-}
-
-.toolbar-logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  margin-inline-start: 12px;
-}
-
-.page-intro .eyebrow {
-  font-family: var(--pbc-font-display);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 0.72rem;
-  color: var(--ion-color-secondary);
 }

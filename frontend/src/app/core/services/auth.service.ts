@@ -160,6 +160,8 @@ export class AuthService {
       this.http.post<ApiResponse>(`${API_BASE_URL}/auth/first-access`, data)
     );
 
+    this.sostituisciToken(response.token);
+
     if (response.user) {
       this.applicaUtente(response.user);
       return response.user;
@@ -168,9 +170,23 @@ export class AuthService {
   }
 
   async changePassword(data: ChangePasswordRequest): Promise<void> {
-    await firstValueFrom(
+    const response = await firstValueFrom(
       this.http.post<ApiResponse>(`${API_BASE_URL}/auth/change-password`, data)
     );
+
+    this.sostituisciToken(response.token);
+  }
+
+  /**
+   * Cambiando la password il server invalida tutti i token emessi prima,
+   * compreso quello in uso, e ne restituisce uno nuovo: va salvato subito,
+   * altrimenti la richiesta successiva riceverebbe 401 e l'utente verrebbe
+   * riportato al login proprio dopo aver scelto la password.
+   */
+  private sostituisciToken(token: string | undefined): void {
+    if (token) {
+      this.tokenService.setToken(token);
+    }
   }
 
   logout(): void {

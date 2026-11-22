@@ -1,38 +1,92 @@
-ion-list {
-  background: transparent;
+.testa ion-back-button {
+  flex: none;
+  margin-left: -12px;
+  color: var(--pbc-ink);
 }
 
-.credentials-box {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
-  padding: 0.75rem 1rem;
-  font-family: monospace;
-  font-size: 1.05rem;
+.modulo {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.blocco {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 16px;
+}
+
+.due-colonne {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (max-width: 380px) {
+  .due-colonne {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pbc-input.area {
+  min-height: 80px;
+  padding: 12px;
+  resize: vertical;
+}
+
+/* Credenziali appena generate */
+.creato {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: var(--pbc-olive-tint);
+  border-color: transparent;
+}
+
+.creato-testa {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pbc-olive-dark);
+  font-size: 24px;
+}
+
+.nome {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--pbc-ink);
+}
+
+.credenziali {
+  padding: 4px 6px 4px 14px;
+  border-radius: 12px;
+  background: var(--pbc-surface);
 }
 
 .cred-riga {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 8px;
+  min-height: 56px;
 }
 
 .cred-riga + .cred-riga {
-  margin-top: 0.35rem;
-  padding-top: 0.35rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.18);
+  border-top: 1px solid var(--pbc-line);
 }
 
 .cred-label {
   display: block;
-  opacity: 0.8;
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pbc-ink-2);
 }
 
 .cred-valore {
-  font-size: 1.05rem;
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 18px;
   /* Selezionabile a mano: se la copia negli appunti fallisce,
      l'utente puo' comunque prendere il testo. */
   user-select: all;

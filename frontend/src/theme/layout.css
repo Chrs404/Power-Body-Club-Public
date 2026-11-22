@@ -1,0 +1,618 @@
+/*
+ * Power Body Club 2.0 — layout
+ *
+ * Mattoni comuni del nuovo layout (vedi i mockup "Power Body Club 2.0 –
+ * nuovo layout"): intestazioni chiare al posto della barra scura, card,
+ * pulsanti, chip e pillole di stato. Caricato dopo theme.css, di cui
+ * riusa colori e caratteri.
+ *
+ * I pulsanti sono <button> nativi con una classe, non ion-button: hanno
+ * esattamente l'aspetto dei mockup e restano raggiungibili da tastiera.
+ */
+
+:root {
+  /* 2.1 — token passati dallo script "brand" di tasteskill con i colori
+     del logo: fondo pergamena, inchiostro carbone, azione oliva, grigio
+     cuoio corretto per il contrasto (5.8:1 sul fondo). */
+  --pbc-surface: #fffcf6;
+  --pbc-surface-2: #efe5d3;
+  --pbc-line: #e6dccb;
+  --pbc-line-strong: #d3c5ad;
+  --pbc-ink: #2c2c24;
+  --pbc-ink-2: #6d5942;
+  --pbc-on-dark: #f6efe2;
+  --pbc-on-dark-2: #c9c0ae;
+  --pbc-dark: #2c2c24;
+
+  --pbc-olive: #5e6544;
+  --pbc-olive-dark: #4a5036;
+  --pbc-olive-tint: #e8eadb;
+  --pbc-ochre: #c0894f;
+  --pbc-ochre-dark: #7e5020;
+  --pbc-ochre-tint: #f3e3cf;
+  /* Ocra per testi e barre su fondo carbone: 5.8:1. */
+  --pbc-ochre-on-dark: #d39b5f;
+
+  /* Movimento (tempi di tasteskill, motion.md): entrata 150ms, uscita
+     120ms, pressione 90ms, una sola curva senza rimbalzi. */
+  --pbc-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --pbc-m-in: 150ms;
+  --pbc-m-out: 120ms;
+  --pbc-m-press: 90ms;
+
+  --pbc-ok: #3f6b37;
+  --pbc-ok-tint: #e3efdf;
+  --pbc-warn: #7a5a0c;
+  --pbc-warn-tint: #f6e9c8;
+  --pbc-bad: #8f3423;
+  --pbc-bad-tint: #f6dfd9;
+
+  /* Intestazioni chiare, nel colore della pagina, come nei mockup. */
+  --ion-toolbar-background: var(--ion-background-color);
+  --ion-toolbar-color: var(--ion-text-color);
+  --ion-toolbar-border-color: transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --pbc-surface: #24241e;
+    --pbc-surface-2: #2f2f27;
+    --pbc-line: #3b3b32;
+    --pbc-line-strong: #4d4c41;
+    --pbc-ink: #ece5d7;
+    --pbc-ink-2: #b2ab9d;
+    --pbc-dark: #11110e;
+
+    --pbc-olive: #8b9464;
+    --pbc-olive-dark: #b6bf8d;
+    --pbc-olive-tint: #33372a;
+    --pbc-ochre-dark: #e2b27c;
+    --pbc-ochre-tint: #3d3122;
+
+    --pbc-ok: #9fcb94;
+    --pbc-ok-tint: #26331f;
+    --pbc-warn: #e3c169;
+    --pbc-warn-tint: #3a3119;
+    --pbc-bad: #eda392;
+    --pbc-bad-tint: #3d241e;
+  }
+
+  .pbc-btn.primary {
+    color: #1a1a16;
+  }
+}
+
+/* ---------------------------------------------------------------- testata */
+
+ion-header.header-md {
+  box-shadow: none;
+}
+
+ion-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding-inline: 20px;
+}
+
+ion-toolbar {
+  --min-height: 60px;
+}
+
+/* Testata personalizzata: occhiello sopra, titolo grande sotto. */
+.pbc-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 12px 8px 20px;
+}
+
+.pbc-head-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pbc-eyebrow {
+  font-family: var(--pbc-font-display);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pbc-ink-2);
+}
+
+.pbc-h1 {
+  margin: 0;
+  font-family: var(--pbc-font-display);
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 0.95;
+  letter-spacing: 0.005em;
+  text-transform: uppercase;
+  color: var(--pbc-ink);
+  overflow-wrap: break-word;
+}
+
+.pbc-h1.xl {
+  font-size: 42px;
+}
+
+.pbc-brand {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--pbc-font-display);
+  font-weight: 600;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.pbc-brand img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+/* ------------------------------------------------------------------ pagina */
+
+.pbc-page {
+  padding: 8px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pbc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pbc-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pbc-card {
+  background: var(--pbc-surface);
+  border: 1px solid var(--pbc-line);
+  border-radius: var(--pbc-radius);
+  box-sizing: border-box;
+}
+
+.pbc-muted {
+  color: var(--pbc-ink-2);
+  font-size: 14px;
+}
+
+.pbc-small {
+  font-size: 13px;
+  color: var(--pbc-ink-2);
+}
+
+.pbc-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  min-height: 32px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--pbc-olive-dark);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+/* ---------------------------------------------------------------- pulsanti */
+
+.pbc-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-sizing: border-box;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--pbc-radius-sm);
+  font-family: var(--ion-font-family);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.1;
+  text-decoration: none;
+  cursor: pointer;
+  background: var(--pbc-surface-2);
+  color: var(--pbc-ink);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pbc-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pbc-btn ion-icon {
+  font-size: 20px;
+  flex: none;
+}
+
+/* Coppia unica di pulsanti: pieno oliva per l'azione principale,
+   tonale per le secondarie. Sui fondi carbone l'azione diventa crema
+   (.inverse), come prevede lo schema "brand" della skill. */
+.pbc-btn.primary {
+  background: var(--pbc-olive);
+  color: #f6efe2;
+}
+
+.pbc-btn.inverse,
+.pbc-btn.ochre {
+  background: #f6efe2;
+  color: #2c2c24;
+}
+
+.pbc-btn.outline {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--pbc-line-strong);
+}
+
+.pbc-btn.ghost {
+  background: transparent;
+  color: var(--pbc-olive-dark);
+  padding: 0 8px;
+}
+
+.pbc-btn.danger {
+  background: var(--pbc-bad-tint);
+  color: var(--pbc-bad);
+}
+
+.pbc-btn.small {
+  min-height: 44px;
+  font-size: 15px;
+  padding: 0 12px;
+}
+
+.pbc-btn.block {
+  width: 100%;
+}
+
+.pbc-icon-btn {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--pbc-radius-sm);
+  background: transparent;
+  color: var(--pbc-ink);
+  font-size: 22px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pbc-icon-btn.muted {
+  color: var(--pbc-ink-2);
+}
+
+.pbc-icon-btn.danger {
+  color: var(--pbc-bad);
+}
+
+.pbc-icon-btn:disabled {
+  opacity: 0.5;
+}
+
+.pbc-avatar {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--pbc-surface-2);
+  color: var(--pbc-ink);
+  font-family: var(--ion-font-family);
+  font-weight: 600;
+  font-size: 15px;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------- chip e pillole */
+
+.pbc-chips {
+  display: flex;
+  gap: 8px;
+  padding: 0 20px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.pbc-chips::-webkit-scrollbar {
+  display: none;
+}
+
+.pbc-chip {
+  flex: none;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--pbc-surface-2);
+  color: var(--pbc-ink);
+  font-family: var(--ion-font-family);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pbc-chip.on {
+  background: var(--pbc-dark);
+  color: var(--pbc-on-dark);
+}
+
+.pbc-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--pbc-surface-2);
+  color: var(--pbc-ink-2);
+}
+
+.pbc-pill.ok { background: var(--pbc-ok-tint); color: var(--pbc-ok); }
+.pbc-pill.warn { background: var(--pbc-warn-tint); color: var(--pbc-warn); }
+.pbc-pill.bad { background: var(--pbc-bad-tint); color: var(--pbc-bad); }
+.pbc-pill.ochre { background: var(--pbc-ochre-tint); color: var(--pbc-ochre-dark); }
+
+/* Selettore a due o tre voci (segmenti). */
+.pbc-segment {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  margin: 0 20px 10px;
+  border-radius: var(--pbc-radius-sm);
+  background: var(--pbc-surface-2);
+}
+
+.pbc-segment button {
+  flex: 1;
+  min-height: 40px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--pbc-ink-2);
+  font-family: var(--ion-font-family);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pbc-segment button.on {
+  background: var(--pbc-surface);
+  color: var(--pbc-ink);
+  box-shadow: 0 1px 2px rgba(44, 44, 36, 0.12);
+}
+
+/* Campo di testo nel nuovo stile. */
+.pbc-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pbc-input {
+  width: 100%;
+  min-height: 46px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1.5px solid var(--pbc-line-strong);
+  border-radius: var(--pbc-radius-sm);
+  background: var(--pbc-surface);
+  color: var(--pbc-ink);
+  font-family: var(--ion-font-family);
+  font-size: 16px;
+}
+
+.pbc-input:focus {
+  outline: none;
+  border-color: var(--pbc-olive);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pbc-olive) 22%, transparent);
+}
+
+.pbc-input.filled {
+  border: 0;
+  background: var(--pbc-surface-2);
+  text-align: center;
+  font-weight: 600;
+}
+
+/* Stato vuoto, nel nuovo stile. */
+.pbc-vuoto {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--pbc-ink-2);
+}
+
+.pbc-vuoto ion-icon {
+  font-size: 44px;
+  opacity: 0.6;
+}
+
+/* Piede fisso delle finestre e dei moduli: il pulsante principale resta
+   sempre a portata di pollice, anche con la tastiera aperta. */
+.pbc-piede {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 20px calc(14px + env(safe-area-inset-bottom));
+  background: var(--pbc-surface);
+  border-top: 1px solid var(--pbc-line);
+}
+
+.pbc-piede .pbc-btn {
+  min-height: 50px;
+}
+
+/*
+ * Su schermi larghi il contenuto delle pagine e' centrato e limitato in
+ * larghezza (vedi theme.css): la testata, i giorni e i segmenti seguono
+ * la stessa colonna, altrimenti resterebbero incollati a sinistra.
+ */
+@media (min-width: 768px) {
+  .pbc-head,
+  .pbc-chips {
+    max-width: 760px;
+    margin-inline: auto;
+    box-sizing: border-box;
+  }
+
+  .pbc-segment {
+    max-width: calc(760px - 40px);
+    margin-inline: auto;
+  }
+}
+
+@media (min-width: 1200px) {
+  .pbc-head,
+  .pbc-chips {
+    max-width: 880px;
+  }
+
+  .pbc-segment {
+    max-width: calc(880px - 40px);
+  }
+}
+
+/* Pagine a tutta larghezza (es. Clienti con il dettaglio affiancato). */
+.pbc-head.pbc-head-largo {
+  max-width: none !important;
+}
+
+/*
+ * Pulsante indietro senza la scritta "Indietro": accanto ai titoli grandi
+ * del nuovo layout bastava la freccia, il testo affollava la testata.
+ */
+ion-back-button::part(text) {
+  display: none;
+}
+
+/* ------------------------------------------------- menu laterale (computer) */
+
+/*
+ * Su schermi larghi la barra a schede in basso lascia il posto a un menu
+ * laterale. ion-tabs dispone i suoi slot in colonna: qui li si mette in
+ * riga, cosi' il menu (slot "top") sta a sinistra del contenuto.
+ */
+.pbc-sidebar {
+  display: none;
+}
+
+@media (min-width: 992px) {
+  ion-tabs.pbc-tabs {
+    flex-direction: row;
+  }
+
+  ion-tabs.pbc-tabs ion-tab-bar {
+    display: none;
+  }
+
+  .pbc-sidebar {
+    width: 232px;
+    flex: none;
+    box-sizing: border-box;
+    padding: 20px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    background: var(--pbc-dark);
+    color: var(--pbc-on-dark);
+    overflow-y: auto;
+  }
+
+  .pbc-sidebar .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 8px;
+    font-family: var(--pbc-font-display);
+    font-weight: 600;
+    font-size: 17px;
+    line-height: 1.1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .pbc-sidebar .brand img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+  }
+
+  .pbc-sidebar nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .pbc-sidebar a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 46px;
+    padding: 0 12px;
+    border-radius: 10px;
+    color: var(--pbc-on-dark-2);
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+
+  .pbc-sidebar a ion-icon {
+    font-size: 22px;
+  }
+
+  /* Voce corrente: fondo tenue e una barra ocra di 3px a sinistra. */
+  .pbc-sidebar a.attivo {
+    background: rgba(246, 239, 226, 0.1);
+    box-shadow: inset 3px 0 0 var(--pbc-ochre-on-dark);
+    color: var(--pbc-on-dark);
+    font-weight: 600;
+  }
+
+  /* Il menu laterale mostra gia' logo e nome: la riga del marchio in
+     testa alle pagine Home diventerebbe un doppione. */
+  ion-header:has(.pbc-brand) {
+    display: none;
+  }
+
+  ion-header:has(.pbc-brand) + ion-content .pbc-page {
+    padding-top: 40px;
+  }
+
+  .pbc-sidebar .piede {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid rgba(246, 239, 226, 0.16);
+  }
+}

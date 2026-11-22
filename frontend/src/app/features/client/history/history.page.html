@@ -1,13 +1,18 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
-    <ion-title>Storico</ion-title>
-  </ion-toolbar>
-  <ion-toolbar>
-    <ion-segment [value]="tab()" (ionChange)="onTabChange($any($event).detail.value)">
-      <ion-segment-button value="schede"><ion-label>Schede</ion-label></ion-segment-button>
-      <ion-segment-button value="pesi"><ion-label>Pesi</ion-label></ion-segment-button>
-      <ion-segment-button value="allenamenti"><ion-label>Sessioni</ion-label></ion-segment-button>
-    </ion-segment>
+    <div class="pbc-head">
+      <div class="pbc-head-text">
+        <h1 class="pbc-h1">Progressi</h1>
+      </div>
+    </div>
+    <div class="pbc-segment" role="tablist" aria-label="Sezioni dei progressi">
+      <button type="button" role="tab" [class.on]="sezione() === 'esercizi'"
+        [attr.aria-selected]="sezione() === 'esercizi'" (click)="sezione.set('esercizi')">Esercizi</button>
+      <button type="button" role="tab" [class.on]="sezione() === 'allenamenti'"
+        [attr.aria-selected]="sezione() === 'allenamenti'" (click)="sezione.set('allenamenti')">Allenamenti</button>
+      <button type="button" role="tab" [class.on]="sezione() === 'schede'"
+        [attr.aria-selected]="sezione() === 'schede'" (click)="sezione.set('schede')">Schede</button>
+    </div>
   </ion-toolbar>
 </ion-header>
 
@@ -22,123 +27,169 @@
     </div>
   } @else if (errorMessage()) {
     <div class="alert alert-danger m-3">{{ errorMessage() }}</div>
-  } @else if (tab() === 'schede') {
+  } @else if (sezione() === 'esercizi') {
 
-    @if (workouts().length === 0) {
-      <div class="text-center py-5 px-4">
-        <ion-icon name="time-outline" class="empty-icon"></ion-icon>
-        <p class="text-muted mt-3 mb-0">Nessuna scheda nello storico.</p>
-      </div>
-    } @else {
-    <ion-list>
-      @for (w of workouts(); track w.id) {
-        <ion-item button [detail]="true" (click)="openDetail(w)">
-          <ion-label>
-            <h2>
-              {{ w.name }}
-              @if (w.status === 'ACTIVE') {
-                <ion-badge color="success" class="ms-2">attuale</ion-badge>
-              }
-            </h2>
-            <p>
-              {{ w.startDate | date: 'dd/MM/yyyy' }}
-              @if (w.endDate) {
-                — {{ w.endDate | date: 'dd/MM/yyyy' }}
-              }
-            </p>
-            @if (w._count) {
-              <ion-note>{{ w._count.days }} giorni</ion-note>
-            }
-          </ion-label>
-        </ion-item>
-      }
-    </ion-list>
-
-    <p class="text-muted small text-center px-3 py-3 mb-0">
-      Le schede passate sono consultabili in sola lettura.
-    </p>
-    }
-
-  } @else if (tab() === 'pesi') {
-
-    @if (weightsByExercise.length === 0) {
-      <div class="text-center py-5 px-4">
-        <ion-icon name="trending-up-outline" class="empty-icon"></ion-icon>
-        <p class="text-muted mt-3 mb-0">
+    @if (esercizi().length === 0) {
+      <div class="pbc-vuoto">
+        <ion-icon name="trending-up-outline" aria-hidden="true"></ion-icon>
+        <p class="mt-3 mb-0">
           Nessun peso registrato.<br />
           Puoi registrarli dalla tua scheda.
         </p>
       </div>
     } @else {
-      <ion-accordion-group>
-        @for (block of weightsByExercise; track block.name) {
-          <ion-accordion [value]="block.name">
-            <ion-item slot="header">
-              <ion-label>
-                <h2>{{ block.name }}</h2>
-                <p>
-                  ultimo: {{ formatWeight(block.logs[0].weight) }} ·
-                  {{ block.logs.length }} registrazioni
-                </p>
-              </ion-label>
-            </ion-item>
-            <div slot="content">
-              <!-- Il grafico precede l'elenco: l'andamento e' la
-                   domanda a cui si vuole rispondere aprendo la sezione,
-                   i singoli valori sono il dettaglio. -->
-              <app-weight-chart [punti]="puntiGrafico(block.logs)"></app-weight-chart>
+      <div class="pbc-page">
+        <label class="scelta">
+          <span class="visually-hidden">Esercizio</span>
+          <select class="pbc-input" [ngModel]="esercizioScelto()" (ngModelChange)="scegliEsercizio($event)">
+            @for (e of esercizi(); track e.id) {
+              <option [ngValue]="e.id">{{ e.nome }}</option>
+            }
+          </select>
+        </label>
 
-              <ion-list>
-                @for (log of block.logs; track log.id) {
-                  <ion-item>
-                    <ion-label>
-                      <h3>{{ formatWeight(log.weight) }}</h3>
-                      <p>
-                        {{ log.performedAt | date: 'dd/MM/yyyy' }}
-                        @if (log.reps) {
-                          · {{ log.reps }} ripetizioni
-                        }
-                      </p>
-                      @if (log.notes) {
-                        <ion-note>{{ log.notes }}</ion-note>
-                      }
-                    </ion-label>
-                  </ion-item>
-                }
-              </ion-list>
+        @if (registrazioni()[0]; as ultima) {
+          <div class="pbc-card grafico">
+            <div class="grafico-testa">
+              <div class="grafico-valore">
+                <span class="pbc-eyebrow">{{ ultima.piramide ? 'Serie più pesante' : 'Ultimo peso' }}</span>
+                <span class="cifra">{{ numero(ultima.massimo) }} kg</span>
+              </div>
+              @if (variazione(); as v) {
+                <span class="pbc-pill" [class.ok]="v > 0" [class.bad]="v < 0">
+                  {{ v > 0 ? '+' : '−' }}{{ numero(v > 0 ? v : -v) }} kg dall'ultima volta
+                </span>
+              }
             </div>
-          </ion-accordion>
+            <app-weight-chart [punti]="punti()"></app-weight-chart>
+          </div>
         }
-      </ion-accordion-group>
+
+        <section class="pbc-section" aria-label="Registrazioni">
+          <div class="pbc-section-head">
+            <span class="pbc-eyebrow">Registrazioni</span>
+            <span class="pbc-small">restano le ultime 10</span>
+          </div>
+
+          <div class="pbc-card elenco">
+            @for (r of registrazioni(); track r.chiave) {
+              <div class="registrazione">
+                <span class="data">{{ r.data | date: 'd MMM' : 'UTC' }}</span>
+                <div class="valori">
+                  <span class="valore">{{ valore(r) }}</span>
+                  @if (dettaglio(r); as det) {
+                    <span class="pbc-small">{{ det }}</span>
+                  }
+                </div>
+                <button type="button" class="pbc-icon-btn muted" (click)="apriModifica(r)"
+                  [attr.aria-label]="'Modifica la registrazione del ' + (r.data | date: 'd MMMM' : 'UTC')">
+                  <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+                </button>
+                <button type="button" class="pbc-icon-btn danger" (click)="confermaElimina(r)"
+                  [attr.aria-label]="'Elimina la registrazione del ' + (r.data | date: 'd MMMM' : 'UTC')">
+                  <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+                </button>
+              </div>
+
+              @if (inModifica() === r.chiave) {
+                <form class="modifica" (ngSubmit)="salvaModifica(r)">
+                  <div class="modifica-campi" [class.piramide]="r.piramide">
+                    @for (riga of r.righe; track riga.id; let n = $index) {
+                      <label class="pbc-field">
+                        <span>{{ r.piramide ? 'Serie ' + (n + 1) : 'Peso (kg)' }}</span>
+                        <input class="pbc-input centrato" type="text" inputmode="decimal"
+                          [name]="'peso' + riga.id" [(ngModel)]="modificaPesi[riga.id]" />
+                      </label>
+                    }
+                    @if (!r.piramide) {
+                      <label class="pbc-field">
+                        <span>Ripetizioni</span>
+                        <input class="pbc-input centrato" type="number" inputmode="numeric" min="1"
+                          name="rip" [(ngModel)]="modificaRip" />
+                      </label>
+                    }
+                  </div>
+                  <label class="pbc-field">
+                    <span>Data</span>
+                    <input class="pbc-input" type="date" name="data" [(ngModel)]="modificaData" />
+                  </label>
+                  <div class="modifica-azioni">
+                    <button type="submit" class="pbc-btn primary small" [disabled]="salvando()">Salva</button>
+                    <button type="button" class="pbc-btn outline small" (click)="annullaModifica()">Annulla</button>
+                  </div>
+                </form>
+              }
+            }
+          </div>
+        </section>
+      </div>
+    }
+
+  } @else if (sezione() === 'allenamenti') {
+
+    @if (sessions().length === 0) {
+      <div class="pbc-vuoto">
+        <ion-icon name="checkmark-done-outline" aria-hidden="true"></ion-icon>
+        <p class="mt-3 mb-0">
+          Nessun allenamento concluso.<br />
+          Compaiono qui quando completi un giorno della scheda.
+        </p>
+      </div>
+    } @else {
+      <div class="pbc-page">
+        <div class="pbc-card elenco">
+          @for (s of sessions(); track s.id) {
+            <div class="voce">
+              <div class="valori">
+                <span class="valore">{{ s.completedAt | date: 'EEEE d MMMM' }}</span>
+                <span class="pbc-small">
+                  {{ s.workout.name }} · {{ s._count.completed }} esercizi
+                  @if (sessionDuration(s); as dur) {
+                    · {{ dur }}
+                  }
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
     }
 
   } @else {
 
-    @if (sessions().length === 0) {
-      <div class="text-center py-5 px-4">
-        <ion-icon name="checkmark-done-outline" class="empty-icon"></ion-icon>
-        <p class="text-muted mt-3 mb-0">
-          Nessun allenamento concluso.<br />
-          Le sessioni compaiono qui dopo "Ricomincia".
-        </p>
+    @if (workouts().length === 0) {
+      <div class="pbc-vuoto">
+        <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+        <p class="mt-3 mb-0">Nessuna scheda nello storico.</p>
       </div>
     } @else {
-      <ion-list>
-        @for (s of sessions(); track s.id) {
-          <ion-item>
-            <ion-label>
-              <h2>{{ s.completedAt | date: 'dd/MM/yyyy' }}</h2>
-              <p>{{ s.workout.name }}</p>
-              <ion-note>
-                {{ s._count.completed }} esercizi
-                @if (sessionDuration(s); as dur) {
-                  · {{ dur }}
-                }
-              </ion-note>
-            </ion-label>
-          </ion-item>
-        }
-      </ion-list>
+      <div class="pbc-page">
+        <div class="pbc-card elenco">
+          @for (w of workouts(); track w.id) {
+            <button type="button" class="voce cliccabile" (click)="openDetail(w)">
+              <div class="valori">
+                <span class="valore">
+                  {{ w.name }}
+                  @if (w.status === 'ACTIVE') {
+                    <span class="pbc-pill ok">attuale</span>
+                  }
+                </span>
+                <span class="pbc-small">
+                  {{ w.startDate | date: 'dd/MM/yyyy' }}
+                  @if (w.endDate) {
+                    – {{ w.endDate | date: 'dd/MM/yyyy' }}
+                  }
+                  @if (w._count) {
+                    · {{ w._count.days }} giorni
+                  }
+                </span>
+              </div>
+              <ion-icon name="chevron-forward-outline" class="freccia" aria-hidden="true"></ion-icon>
+            </button>
+          }
+        </div>
+        <p class="pbc-small text-center mb-0">Le schede passate si consultano in sola lettura.</p>
+      </div>
     }
 
   }
@@ -159,51 +210,37 @@
             <ion-spinner name="crescent"></ion-spinner>
           </div>
         } @else if (detail(); as w) {
-          <div class="px-3 pt-3">
-            <ion-note>
+          <div class="pbc-page">
+            <span class="pbc-small">
               {{ w.startDate | date: 'dd/MM/yyyy' }}
               @if (w.endDate) {
-                — {{ w.endDate | date: 'dd/MM/yyyy' }}
+                – {{ w.endDate | date: 'dd/MM/yyyy' }}
               }
-            </ion-note>
+            </span>
             @if (w.notes) {
-              <p class="workout-notes mt-2">{{ w.notes }}</p>
+              <p class="note-scheda">{{ w.notes }}</p>
+            }
+
+            @for (day of w.days; track day.id) {
+              <section class="pbc-section">
+                <span class="pbc-eyebrow">{{ day.label }}</span>
+                <div class="pbc-card elenco">
+                  @let esercizi = eserciziPerGruppo(day);
+                  @for (ex of esercizi; track ex.id; let j = $index) {
+                    @if (sezioneDi(esercizi, j); as gruppo) {
+                      <div class="pbc-sezione-muscolo">{{ gruppo | muscleGroup }}</div>
+                    }
+                    <div class="voce">
+                      <div class="valori">
+                        <span class="valore">{{ ex.exercise.name }}</span>
+                        <span class="pbc-small">{{ descriviEsercizio(ex) }}</span>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </section>
             }
           </div>
-
-          <ion-accordion-group>
-            @for (day of w.days; track day.id) {
-              <ion-accordion [value]="day.id">
-                <ion-item slot="header">
-                  <ion-label>
-                    <h2>{{ day.label }}</h2>
-                    <p>{{ day.exercises.length }} esercizi</p>
-                  </ion-label>
-                </ion-item>
-                <div slot="content">
-                  <ion-list>
-                    @let esercizi = eserciziPerGruppo(day);
-                    @for (ex of esercizi; track ex.id; let j = $index) {
-                      @if (sezioneDi(esercizi, j); as gruppo) {
-                        <div class="pbc-sezione-muscolo">{{ gruppo | muscleGroup }}</div>
-                      }
-                      <ion-item>
-                        <ion-label>
-                          <h3>{{ ex.exercise.name }}</h3>
-                          <p>
-                            {{ ex.sets }} × {{ ex.reps }}
-                            @if (formatWeight(ex.suggestedWeight); as weight) {
-                              · {{ weight }}
-                            }
-                          </p>
-                        </ion-label>
-                      </ion-item>
-                    }
-                  </ion-list>
-                </div>
-              </ion-accordion>
-            }
-          </ion-accordion-group>
         }
       </ion-content>
     </ng-template>

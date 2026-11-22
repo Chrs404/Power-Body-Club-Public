@@ -21,9 +21,28 @@ export interface RenewalsCategorySummary {
 export interface RenewalsSummary {
   subscriptions: RenewalsCategorySummary;
   workouts: RenewalsCategorySummary;
+  /** Clienti in elenco per l'eliminazione automatica. */
+  deletions?: number;
+}
+
+/**
+ * Cliente con abbonamento e scheda entrambi scaduti: verra' eliminato
+ * automaticamente il giorno deleteOn, salvo "Rimanda".
+ */
+export interface DeletionItem {
+  clientId: number;
+  clientName: string;
+  clientUsername: string;
+  subscriptionEnd: string | null;
+  workoutEnd: string | null;
+  deleteOn: string;
+  /** Giorni che mancano; 0 o meno = alla prossima pulizia. */
+  daysLeft: number;
 }
 
 export interface RenewalsResponse {
   items: RenewalItem[];
   summary: RenewalsSummary;
+  /** Assente nelle risposte dei server precedenti alla 2.0. */
+  deletions?: DeletionItem[];
 }

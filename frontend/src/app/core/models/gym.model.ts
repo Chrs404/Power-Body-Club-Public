@@ -71,6 +71,17 @@ export interface ClientDashboard {
     endDate: string | null;
     _count: { days: number };
   } | null;
+  /** Giorno da proporre come prossimo allenamento; null senza scheda. */
+  nextDay?: {
+    dayId: number;
+    label: string;
+    index: number;
+    muscleGroups: string[];
+    exerciseCount: number;
+    blocksTotal: number;
+    blocksDone: number;
+    inProgress: boolean;
+  } | null;
   latestNews: News | null;
   upcomingClosures: Closure[];
 }

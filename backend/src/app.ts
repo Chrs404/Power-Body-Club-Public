@@ -37,10 +37,30 @@ const LOCAL_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const LAN_ORIGIN =
   /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})(:\d+)?$/;
 
+/*
+ * Header di sicurezza standard (niente "X-Powered-By", "nosniff",
+ * HSTS, divieto di incorniciare le risposte in un iframe...).
+ *
+ * - Content-Security-Policy spenta: riguarda le pagine HTML, e questo
+ *   server risponde in JSON. Nella modalita' a origine singola (piu'
+ *   sotto) bloccherebbe invece gli stili e i font dell'app Angular.
+ * - Cross-Origin-Resource-Policy aperta: il frontend sta su un altro
+ *   dominio (Vercel) e deve poter leggere le risposte, PDF compresi.
+ */
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+  })
+);
+
+// In produzione: "*" ammette tutte le origini, altrimenti vale l'elenco.
+const ORIGINI_PRODUZIONE = env.corsOrigins.includes('*') ? '*' : env.corsOrigins;
+
 app.use(
   cors({
     origin: env.isProduction
-      ? env.corsOrigin
+      ? ORIGINI_PRODUZIONE
       : (origin, callback) => {
           if (!origin || LOCAL_ORIGIN.test(origin) || LAN_ORIGIN.test(origin)) {
             callback(null, true);

@@ -1,0 +1,68 @@
+# Ambiente di sviluppo locale: database PostgreSQL + backend.
+#
+#   docker compose up -d --build     avvia tutto (la prima volta scarica e compila)
+#   docker compose logs -f backend   mostra i log del backend
+#   docker compose down              ferma tutto (i dati restano)
+#   docker compose down -v           ferma tutto e CANCELLA il database locale
+#
+# Solo il database, per lanciare il backend a mano con "npm run dev":
+#   docker compose up -d db
+#
+# Il frontend non sta qui: si avvia con "npm start" dalla cartella frontend
+# e trova da solo il backend sulla porta 3000.
+#
+# In produzione questo file non viene usato: Render costruisce
+# backend/Dockerfile e il database e' Neon.
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      # Stesse credenziali del file backend/.env di sviluppo.
+      POSTGRES_USER: gym_user
+      POSTGRES_PASSWORD: gym_password
+      POSTGRES_DB: gym_db
+    ports:
+      # Se sul PC gira gia' un PostgreSQL sulla 5432, la porta risulta
+      # occupata: fermalo, oppure avvia con un'altra porta, per esempio
+      #   $env:DB_PORT=5433; docker compose up -d
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gym_user -d gym_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # "db" e' il nome del servizio qui sopra: dentro la rete di Docker
+      # e' cosi' che il backend raggiunge il database.
+      DATABASE_URL: postgresql://gym_user:gym_password@db:5432/gym_db?schema=public
+      NODE_ENV: development
+      PORT: 3000
+      JWT_EXPIRES_IN: 30d
+      # Valido solo in locale. In produzione il segreto vero sta su Render.
+      JWT_SECRET: ${JWT_SECRET:-segreto-solo-per-lo-sviluppo-locale-non-usarlo-online}
+      # All'avvio: crea o aggiorna le tabelle e carica i dati iniziali.
+      RUN_MIGRATIONS: "true"
+      # Con una copia dei dati di produzione nel database locale il seed
+      # va spento, o aggiungerebbe i suoi dati di esempio a quelli veri:
+      # basta un file ".env" accanto a questo con la riga RUN_SEED=false
+      RUN_SEED: ${RUN_SEED:-true}
+      # Password dell'istruttore al primo avvio. Se resta vuota ne viene
+      # generata una casuale, mostrata una volta nei log del backend.
+      TRAINER_USERNAME: ${TRAINER_USERNAME:-istruttore}
+      TRAINER_PASSWORD: ${TRAINER_PASSWORD:-}
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:

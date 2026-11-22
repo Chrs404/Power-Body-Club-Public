@@ -3,10 +3,7 @@ import { KeyValuePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
-  IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonButtons,
-  IonBackButton, IonInput, IonItem, IonList, IonListHeader, IonLabel,
-  IonSpinner, IonTextarea, IonCard, IonCardContent, IonCardHeader,
-  IonCardTitle, IonIcon,
+  IonContent, IonHeader, IonToolbar, IonBackButton, IonIcon, IonFooter,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import { copyOutline, checkmarkCircle } from 'ionicons/icons';
@@ -20,10 +17,7 @@ import { GeneratedCredentials } from '../../../../core/models/client.model';
   imports: [
     ReactiveFormsModule,
     KeyValuePipe,
-    IonContent, IonHeader, IonTitle, IonToolbar, IonButton, IonButtons,
-    IonBackButton, IonInput, IonItem, IonList, IonListHeader, IonLabel,
-    IonSpinner, IonTextarea, IonCard, IonCardContent, IonCardHeader,
-    IonCardTitle, IonIcon,
+    IonContent, IonHeader, IonToolbar, IonBackButton, IonIcon, IonFooter,
   ],
   templateUrl: './client-create.page.html',
   styleUrl: './client-create.page.css',

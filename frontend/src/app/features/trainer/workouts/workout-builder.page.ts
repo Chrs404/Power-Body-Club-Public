@@ -1,18 +1,17 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
-  IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton,
-  IonButton, IonInput, IonItem, IonList, IonLabel, IonSpinner, IonIcon,
-  IonModal, IonSearchbar, IonTextarea, IonReorder, IonReorderGroup,
-  IonNote, IonChip, IonAccordion, IonAccordionGroup, IonBadge, IonFooter,
-  IonSelect, IonSelectOption,
+  IonContent, IonHeader, IonToolbar, IonBackButton, IonSpinner, IonIcon,
+  IonModal, IonReorder, IonReorderGroup, IonFooter,
   AlertController, ToastController, ItemReorderEventDetail,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   add, trashOutline, addCircleOutline, closeCircleOutline, saveOutline,
-  linkOutline, unlinkOutline, arrowBackOutline,
+  linkOutline, unlinkOutline, arrowBackOutline, bookmarkOutline, closeOutline,
+  checkmark, searchOutline, chevronDownOutline, chevronUpOutline,
 } from 'ionicons/icons';
 
 import { WorkoutService } from '../../../core/services/workout.service';
@@ -22,8 +21,15 @@ import {
   Exercise, ExerciseInput, MuscleGroup, MUSCLE_GROUPS, MUSCLE_GROUP_LABELS,
 } from '../../../core/models/exercise.model';
 import {
-  Workout, WorkoutDayInput, WorkoutExerciseInput, ordinaPerGruppoMuscolare,
+  ExerciseKind, Workout, WorkoutDayInput, WorkoutExerciseInput, WorkoutTemplate,
+  ordinaPerGruppoMuscolare,
 } from '../../../core/models/workout.model';
+
+/** Una serie di una piramidale mentre la si compone. */
+interface DraftSet {
+  reps: string;
+  suggestedWeight: number | null;
+}
 
 /**
  * Riga in costruzione: tiene anche il nome, per non rileggere il catalogo.
@@ -32,13 +38,16 @@ import {
  * stabile per @for. Con "track $index" Angular riusa i nodi per posizione
  * e non li riordina mai, il che rende impossibile il trascinamento.
  */
-interface DraftExercise extends WorkoutExerciseInput {
+interface DraftExercise extends Omit<WorkoutExerciseInput, 'pyramidSets'> {
   uid: string;
   exerciseName: string;
   /** Solo per raggruppare la bozza in sezioni: non viene inviato al server. */
   muscleGroup: MuscleGroup;
   /** Superset: eseguito di fila con l'esercizio precedente. */
   linkedToPrevious: boolean;
+  kind: ExerciseKind;
+  /** Serie della piramidale; conservate anche tornando a "Normale", per non perderle. */
+  pyramidSets: DraftSet[];
 }
 
 interface DraftDay {
@@ -56,12 +65,9 @@ function nuovoUid(prefisso: string): string {
 @Component({
   selector: 'app-workout-builder',
   imports: [
-    FormsModule, ReactiveFormsModule,
-    IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton,
-    IonButton, IonInput, IonItem, IonList, IonLabel, IonSpinner, IonIcon,
-    IonModal, IonSearchbar, IonTextarea, IonReorder, IonReorderGroup,
-    IonNote, IonChip, IonAccordion, IonAccordionGroup, IonBadge, IonFooter,
-    IonSelect, IonSelectOption,
+    FormsModule, ReactiveFormsModule, DatePipe, NgTemplateOutlet,
+    IonContent, IonHeader, IonToolbar, IonBackButton, IonSpinner, IonIcon,
+    IonModal, IonReorder, IonReorderGroup, IonFooter,
   ],
   templateUrl: './workout-builder.page.html',
   styleUrl: './workout-builder.page.css',
@@ -75,6 +81,24 @@ export class WorkoutBuilderPage implements OnInit {
   private readonly router = inject(Router);
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
+  private readonly destroyRef = inject(DestroyRef);
+
+  /**
+   * Schermo largo (computer): gli esercizi diventano una tabella da
+   * compilare riga per riga e il catalogo resta aperto a fianco, senza
+   * finestre che si aprono e si chiudono.
+   */
+  readonly largo = signal(false);
+  /** Giorno mostrato: i giorni si scelgono con i chip, uno alla volta. */
+  readonly giornoAttivo = signal(0);
+  /** Righe aperte sul telefono per modificarne serie, ripetizioni e pesi. */
+  readonly aperti = signal<Set<string>>(new Set());
+  /** Dati della scheda (nome, date, note) aperti per la modifica, al passo 2. */
+  readonly datiAperti = signal(false);
+  /** Filtro del catalogo per gruppo muscolare; null = tutti. */
+  readonly filtroGruppo = signal<MuscleGroup | null>(null);
+  /** Creazione dal catalogo affiancato: l'esercizio nuovo va subito nel giorno. */
+  private aggiuntaDiretta = false;
 
   readonly loading = signal(true);
   readonly saving = signal(false);
@@ -156,6 +180,22 @@ export class WorkoutBuilderPage implements OnInit {
   readonly modalitaModello = signal(false);
   readonly templateId = signal<number | null>(null);
 
+  /**
+   * Scheda nuova per un cliente: passo 1 dati e punto di partenza (vuota o
+   * una scheda rapida, che si puo' poi modificare), passo 2 giorni ed
+   * esercizi. Modifiche e schede rapide partono direttamente dal passo 2.
+   */
+  readonly passo = signal<1 | 2>(2);
+  readonly schedeRapide = signal<WorkoutTemplate[]>([]);
+  /** Scheda rapida da cui si e' partiti; null = scheda vuota. */
+  readonly partenza = signal<number | null>(null);
+  readonly caricandoPartenza = signal(false);
+
+  /** Vero per una scheda nuova assegnata a un cliente (non modifica, non modello). */
+  get nuovaPerCliente(): boolean {
+    return !this.modalitaModello() && this.editingWorkoutId() === null;
+  }
+
   get totalExercises(): number {
     return this.days().reduce((sum, day) => sum + day.exercises.length, 0);
   }
@@ -169,11 +209,7 @@ export class WorkoutBuilderPage implements OnInit {
    * Un getter viene rivalutato a ogni ciclo di change detection.
    */
   get canSave(): boolean {
-    return (
-      this.name.trim().length >= 2 &&
-      this.days().length > 0 &&
-      this.totalExercises > 0
-    );
+    return this.blockingReason === null;
   }
 
   /** Motivo per cui il salvataggio non e' ancora possibile. */
@@ -187,13 +223,31 @@ export class WorkoutBuilderPage implements OnInit {
     if (this.totalExercises === 0) {
       return 'Aggiungi almeno un esercizio.';
     }
+    for (const day of this.days()) {
+      for (const ex of day.exercises) {
+        if (ex.kind !== 'PYRAMID') continue;
+        if (ex.pyramidSets.length < 2) {
+          return `${ex.exerciseName}: una piramidale ha almeno 2 serie.`;
+        }
+        if (ex.pyramidSets.some((serie) => !String(serie.reps).trim())) {
+          return `${ex.exerciseName}: indica le ripetizioni di ogni serie.`;
+        }
+      }
+    }
     return null;
   }
 
   constructor() {
+    const media = window.matchMedia('(min-width: 1100px)');
+    this.largo.set(media.matches);
+    const cambio = (e: MediaQueryListEvent) => this.largo.set(e.matches);
+    media.addEventListener('change', cambio);
+    this.destroyRef.onDestroy(() => media.removeEventListener('change', cambio));
+
     addIcons({
       add, trashOutline, addCircleOutline, closeCircleOutline, saveOutline,
-      linkOutline, unlinkOutline, arrowBackOutline,
+      linkOutline, unlinkOutline, arrowBackOutline, bookmarkOutline, closeOutline,
+      checkmark, searchOutline, chevronDownOutline, chevronUpOutline,
     });
   }
 
@@ -252,9 +306,15 @@ export class WorkoutBuilderPage implements OnInit {
       const modelloParam = this.route.snapshot.queryParamMap.get('daModello');
       if (modelloParam) {
         await this.precompilaDaModello(Number(modelloParam));
+        this.partenza.set(Number(modelloParam));
       } else {
         this.iniziaNuova();
+        this.passo.set(1);
       }
+      // Elenco per "Da dove parti": se non si carica, resta la scheda vuota.
+      this.workoutService.listTemplates()
+        .then((modelli) => this.schedeRapide.set(modelli))
+        .catch(() => this.schedeRapide.set([]));
     } catch (error: unknown) {
       const err = error as { error?: { message?: string } };
       this.errorMessage.set(
@@ -262,7 +322,33 @@ export class WorkoutBuilderPage implements OnInit {
       );
     } finally {
       this.loading.set(false);
+      // Sul computer il catalogo e' sempre aperto a fianco degli esercizi.
+      if (this.largo()) void this.loadCatalog();
     }
+  }
+
+  get testoSalva(): string {
+    if (this.saving()) return 'Salvataggio…';
+    if (this.modalitaModello()) return this.templateId() ? 'Salva modifiche' : 'Salva scheda rapida';
+    return this.editingWorkoutId() ? 'Salva modifiche' : 'Crea e assegna';
+  }
+
+  /** Riga sopra il titolo: per chi e', e a che punto della creazione. */
+  get occhiello(): string {
+    if (this.modalitaModello()) return 'Scheda rapida';
+    const passo = this.nuovaPerCliente ? ` · passo ${this.passo()} di 2` : '';
+    return `${this.editingWorkoutId() ? 'Scheda di ' : 'Per '}${this.clientName()}${passo}`;
+  }
+
+  get titolo(): string {
+    const nuova = this.modalitaModello() ? 'Nuova scheda rapida' : 'Nuova scheda';
+    if (this.passo() === 1) return nuova;
+    return this.name.trim() || nuova;
+  }
+
+  /** Giorno in cui finiranno gli esercizi scelti nella finestra di selezione. */
+  get giornoDestinazione(): string {
+    return this.days()[this.targetDayIndex]?.label || 'Giorno';
   }
 
   /**
@@ -272,13 +358,46 @@ export class WorkoutBuilderPage implements OnInit {
    */
   percorsoRitorno(): string {
     if (this.modalitaModello()) return '/istruttore/schede-rapide';
-    return this.clientId
-      ? `/istruttore/clienti/${this.clientId}/schede`
-      : '/istruttore/clienti';
+    return this.clientId ? `/istruttore/clienti/${this.clientId}` : '/istruttore/clienti';
+  }
+
+  // ------------------------------------------------------ passo 1: partenza
+
+  /** Sceglie da dove partire: null = scheda vuota, altrimenti una scheda rapida. */
+  async scegliPartenza(modelloId: number | null): Promise<void> {
+    if (this.caricandoPartenza() || modelloId === this.partenza()) return;
+    this.partenza.set(modelloId);
+
+    if (modelloId === null) {
+      this.iniziaNuova();
+      return;
+    }
+
+    this.caricandoPartenza.set(true);
+    try {
+      await this.precompilaDaModello(modelloId, false);
+    } finally {
+      this.caricandoPartenza.set(false);
+    }
+  }
+
+  continua(): void {
+    if (this.name.trim().length < 2) {
+      void this.showToast('Inserisci il nome della scheda (almeno 2 caratteri).', 'warning');
+      return;
+    }
+    this.passo.set(2);
+  }
+
+  descriviModello(m: WorkoutTemplate): string {
+    const esercizi = m.days.reduce((tot, d) => tot + d._count.exercises, 0);
+    const giorni = m._count.days;
+    return `${giorni} ${giorni === 1 ? 'giorno' : 'giorni'}, ${esercizi} esercizi`;
   }
 
   private iniziaNuova(): void {
-    this.days.set([{ uid: nuovoUid('giorno'), label: 'Giorno 1', exercises: [] }]);
+    this.days.set([{ uid: nuovoUid('giorno'), label: 'Giorno A', exercises: [] }]);
+    this.giornoAttivo.set(0);
   }
 
   private async caricaNomeCliente(): Promise<void> {
@@ -313,6 +432,14 @@ export class WorkoutBuilderPage implements OnInit {
           suggestedWeight:
             we.suggestedWeight !== null ? Number(we.suggestedWeight) : null,
           notes: we.notes ?? undefined,
+          kind: we.kind ?? 'NORMAL',
+          pyramidSets: (we.pyramidSets ?? []).map((serie) => ({
+            reps: serie.reps,
+            suggestedWeight:
+              serie.suggestedWeight !== null && serie.suggestedWeight !== ''
+                ? Number(serie.suggestedWeight)
+                : null,
+          })),
         }))
       ),
     }));
@@ -334,10 +461,11 @@ export class WorkoutBuilderPage implements OnInit {
    * modificato il modello di partenza, che resta utilizzabile per gli
    * altri.
    */
-  private async precompilaDaModello(id: number): Promise<void> {
+  private async precompilaDaModello(id: number, sovrascriviNome = true): Promise<void> {
     try {
       const modello = await this.workoutService.getTemplate(id);
-      this.name = modello.name;
+      // Dal passo 1 il nome eventualmente gia' scritto resta.
+      if (sovrascriviNome || !this.name.trim()) this.name = modello.name;
       this.notes = modello.notes ?? '';
       this.days.set(this.giorniInBozza(modello.days));
     } catch {
@@ -369,10 +497,15 @@ export class WorkoutBuilderPage implements OnInit {
 
   addDay(): void {
     const current = this.days();
+    // Lettere come nei mockup e nelle schede in palestra: Giorno A, B, C...
+    const etichetta = current.length < 26
+      ? `Giorno ${String.fromCharCode(65 + current.length)}`
+      : `Giorno ${current.length + 1}`;
     this.days.set([
       ...current,
-      { uid: nuovoUid('giorno'), label: `Giorno ${current.length + 1}`, exercises: [] },
+      { uid: nuovoUid('giorno'), label: etichetta, exercises: [] },
     ]);
+    this.giornoAttivo.set(current.length);
   }
 
   async confirmRemoveDay(index: number): Promise<void> {
@@ -395,6 +528,7 @@ export class WorkoutBuilderPage implements OnInit {
 
   private removeDay(index: number): void {
     this.days.set(this.days().filter((_, i) => i !== index));
+    this.giornoAttivo.set(Math.max(0, Math.min(this.giornoAttivo(), this.days().length - 1)));
   }
 
   updateDayLabel(index: number, label: string): void {
@@ -406,8 +540,121 @@ export class WorkoutBuilderPage implements OnInit {
   openPicker(dayIndex: number): void {
     this.targetDayIndex = dayIndex;
     this.catalogSearch = '';
+    this.filtroGruppo.set(null);
     this.selezione.set([]);
+    this.aggiuntaDiretta = false;
     this.pickerOpen.set(true);
+    void this.loadCatalog();
+  }
+
+  // ------------------------------------------------------ giorni e righe
+
+  get giornoCorrente(): DraftDay | null {
+    return this.days()[this.giornoAttivo()] ?? this.days()[0] ?? null;
+  }
+
+  aperto(uid: string): boolean {
+    return this.aperti().has(uid);
+  }
+
+  apriChiudi(uid: string): void {
+    const aperti = new Set(this.aperti());
+    if (aperti.has(uid)) {
+      aperti.delete(uid);
+    } else {
+      aperti.add(uid);
+    }
+    this.aperti.set(aperti);
+  }
+
+  /** Riga di riepilogo sotto il nome: "4 × 8 · recupero 90 s · 60 kg". */
+  riassunto(day: DraftDay, indice: number): string {
+    const ex = day.exercises[indice];
+    const peso = (kg: number | null | undefined) =>
+      kg !== null && kg !== undefined ? `${parseFloat(Number(kg).toFixed(2)).toLocaleString('it-IT')} kg` : null;
+
+    if (ex.kind === 'PYRAMID' && !this.inSuperset(day, indice)) {
+      return [ex.pyramidSets.map((s) => s.reps).join('-'), `recupero ${ex.restSeconds ?? 60} s`].join(' · ');
+    }
+    if (this.inSuperset(day, indice)) {
+      return [`${ex.reps} ripetizioni`, peso(ex.suggestedWeight)].filter(Boolean).join(' · ');
+    }
+    return [`${ex.sets} × ${ex.reps}`, `recupero ${ex.restSeconds ?? 60} s`, peso(ex.suggestedWeight)]
+      .filter(Boolean)
+      .join(' · ');
+  }
+
+  /** Ultima riga di un superset: chiude il blocco con giri e recupero comuni. */
+  chiudeSuperset(day: DraftDay, indice: number): boolean {
+    const blocco = this.blocchiDelGiorno(day).find((b) => b.indici.includes(indice));
+    return !!blocco?.superset && blocco.indici[blocco.indici.length - 1] === indice;
+  }
+
+  infoSuperset(day: DraftDay, indice: number): string {
+    const blocco = this.blocchiDelGiorno(day).find((b) => b.indici.includes(indice));
+    const capo = blocco ? day.exercises[blocco.indici[0]] : day.exercises[indice];
+    return `Superset ${blocco?.sigla ?? ''} · ${capo.sets} giri · recupero ${capo.restSeconds ?? 60} s`;
+  }
+
+  /** Scioglie tutto il superset a cui appartiene la riga. */
+  sciogliSuperset(dayIndex: number, indice: number): void {
+    const day = this.days()[dayIndex];
+    const blocco = this.blocchiDelGiorno(day).find((b) => b.indici.includes(indice));
+    if (!blocco) return;
+    this.aggiornaBlocco(dayIndex, blocco.indici.slice(1), { linkedToPrevious: false });
+    const copy = [...this.days()];
+    copy[dayIndex] = { ...copy[dayIndex], exercises: this.sistemaGiorno(copy[dayIndex].exercises) };
+    this.days.set(copy);
+  }
+
+  get totaleGiorni(): string {
+    const g = this.days().length;
+    const e = this.totalExercises;
+    return `${g} ${g === 1 ? 'giorno' : 'giorni'} · ${e} ${e === 1 ? 'esercizio' : 'esercizi'}`;
+  }
+
+  // ------------------------------------------------------------- catalogo
+
+  /** Gruppi presenti nel catalogo caricato, nell'ordine standard. */
+  get gruppiCatalogo(): MuscleGroup[] {
+    const presenti = new Set(this.catalog().map((e) => e.muscleGroup));
+    return MUSCLE_GROUPS.filter((g) => presenti.has(g));
+  }
+
+  /** Catalogo filtrato per gruppo; durante una ricerca si mostra tutto il trovato. */
+  get catalogoFiltrato(): Exercise[] {
+    const gruppo = this.filtroGruppo();
+    if (this.inRicerca || !gruppo) return this.catalog();
+    return this.catalog().filter((e) => e.muscleGroup === gruppo);
+  }
+
+  scegliGruppo(gruppo: MuscleGroup | null): void {
+    this.filtroGruppo.set(this.filtroGruppo() === gruppo ? null : gruppo);
+  }
+
+  /** L'esercizio e' gia' nel giorno mostrato (catalogo affiancato). */
+  giaNelGiorno(exerciseId: number): boolean {
+    return this.giornoCorrente?.exercises.some((e) => e.exerciseId === exerciseId) ?? false;
+  }
+
+  /** Catalogo affiancato: un tocco su "+" aggiunge subito l'esercizio al giorno mostrato. */
+  aggiungiSubito(exercise: Exercise): void {
+    this.targetDayIndex = this.giornoAttivo();
+    this.selezione.set([exercise]);
+    this.inserisciSelezione();
+  }
+
+  /** Sul computer "Nuovo esercizio" apre direttamente il modulo di creazione. */
+  apriNuovoEsercizioDiretto(): void {
+    this.targetDayIndex = this.giornoAttivo();
+    this.selezione.set([]);
+    this.aggiuntaDiretta = true;
+    this.pickerOpen.set(true);
+    this.apriCreazioneEsercizio();
+  }
+
+  /** Il catalogo affiancato si carica all'apertura della pagina sul computer. */
+  caricaCatalogo(): void {
     void this.loadCatalog();
   }
 
@@ -458,6 +705,13 @@ export class WorkoutBuilderPage implements OnInit {
    * in cui sono stati toccati.
    */
   confermaSelezione(): void {
+    if (this.selezione().length === 0) return;
+    this.inserisciSelezione();
+    this.chiudiPicker();
+  }
+
+  /** Aggiunge in fondo al giorno di destinazione gli esercizi selezionati. */
+  private inserisciSelezione(): void {
     const scelti = this.selezione();
     if (scelti.length === 0) return;
 
@@ -474,6 +728,8 @@ export class WorkoutBuilderPage implements OnInit {
       reps: '10',
       restSeconds: 60,
       suggestedWeight: null,
+      kind: 'NORMAL' as ExerciseKind,
+      pyramidSets: [],
     }));
 
     // Ogni esercizio aggiunto finisce in fondo alla sezione del suo
@@ -484,7 +740,7 @@ export class WorkoutBuilderPage implements OnInit {
     };
 
     this.days.set(copy);
-    this.chiudiPicker();
+    this.selezione.set([]);
   }
 
   /**
@@ -518,6 +774,8 @@ export class WorkoutBuilderPage implements OnInit {
     name: ['', [Validators.required, Validators.minLength(2)]],
     muscleGroup: ['CHEST' as MuscleGroup, Validators.required],
     description: [''],
+    videoUrl: [''],
+    imageUrl: [''],
   });
 
   /**
@@ -529,8 +787,11 @@ export class WorkoutBuilderPage implements OnInit {
     this.erroreEsercizio.set(null);
     this.nuovoEsercizioForm.reset({
       name: this.catalogSearch.trim(),
-      muscleGroup: 'CHEST',
+      // Il gruppo filtrato in quel momento e' il piu' probabile.
+      muscleGroup: this.filtroGruppo() ?? 'CHEST',
       description: '',
+      videoUrl: '',
+      imageUrl: '',
     });
     this.creandoEsercizio.set(true);
   }
@@ -538,6 +799,11 @@ export class WorkoutBuilderPage implements OnInit {
   annullaCreazioneEsercizio(): void {
     this.creandoEsercizio.set(false);
     this.erroreEsercizio.set(null);
+    // Aperto solo per creare (catalogo affiancato): tornare indietro chiude.
+    if (this.aggiuntaDiretta && this.pickerOpen()) {
+      this.aggiuntaDiretta = false;
+      this.pickerOpen.set(false);
+    }
   }
 
   async salvaNuovoEsercizio(): Promise<void> {
@@ -554,10 +820,23 @@ export class WorkoutBuilderPage implements OnInit {
       name: v.name.trim(),
       muscleGroup: v.muscleGroup,
       description: v.description.trim() || undefined,
+      videoUrl: v.videoUrl.trim() || undefined,
+      imageUrl: v.imageUrl.trim() || undefined,
     };
 
     try {
       const creato = await this.exerciseService.create(payload);
+
+      if (this.aggiuntaDiretta) {
+        // Dal catalogo affiancato: niente selezione, va subito nel giorno.
+        this.selezione.set([creato]);
+        this.inserisciSelezione();
+        this.catalogSearch = '';
+        await this.loadCatalog();
+        this.chiudiPicker();
+        await this.showToast(`"${creato.name}" creato e aggiunto.`, 'success');
+        return;
+      }
 
       // Selezionato subito: l'ha creato apposta per aggiungerlo a questo
       // giorno, quindi un tocco in più per riselezionarlo sarebbe superfluo.
@@ -683,6 +962,17 @@ export class WorkoutBuilderPage implements OnInit {
 
     const copy = [...this.days()];
     const esercizi = [...copy[dayIndex].exercises];
+
+    // Nel superset serie e recupero sono quelli del primo esercizio e
+    // valgono per tutto il giro: con una piramidale non avrebbe senso.
+    if (
+      !esercizi[exerciseIndex].linkedToPrevious &&
+      (esercizi[exerciseIndex].kind === 'PYRAMID' || esercizi[exerciseIndex - 1].kind === 'PYRAMID')
+    ) {
+      void this.showToast('Un esercizio piramidale non può far parte di un superset.', 'warning');
+      return;
+    }
+
     esercizi[exerciseIndex] = {
       ...esercizi[exerciseIndex],
       linkedToPrevious: !esercizi[exerciseIndex].linkedToPrevious,
@@ -770,24 +1060,143 @@ export class WorkoutBuilderPage implements OnInit {
     this.days.set(copy);
   }
 
+  // ------------------------------------------------------------ piramidali
+
+  /** In un superset (o all'inizio di uno) la piramidale non si puo' scegliere. */
+  inSuperset(day: DraftDay, exerciseIndex: number): boolean {
+    return day.exercises[exerciseIndex].linkedToPrevious || this.apreSuperset(day, exerciseIndex);
+  }
+
+  impostaTipo(dayIndex: number, exerciseIndex: number, kind: ExerciseKind): void {
+    const ex = this.days()[dayIndex].exercises[exerciseIndex];
+    if (ex.kind === kind) return;
+
+    if (kind === 'PYRAMID' && ex.pyramidSets.length === 0) {
+      // Si parte dalle serie e dal peso gia' scritti: 4 serie diventano
+      // 4 righe da rifinire, invece di un modulo vuoto.
+      const quante = Math.min(Math.max(ex.sets || 4, 2), 12);
+      const serie: DraftSet[] = Array.from({ length: quante }, () => ({
+        reps: String(ex.reps ?? '').trim() || '10',
+        suggestedWeight: ex.suggestedWeight ?? null,
+      }));
+      this.updateExercise(dayIndex, exerciseIndex, { kind, pyramidSets: serie });
+      return;
+    }
+
+    this.updateExercise(dayIndex, exerciseIndex, { kind });
+  }
+
+  aggiornaSerie(dayIndex: number, exerciseIndex: number, indice: number, patch: Partial<DraftSet>): void {
+    const ex = this.days()[dayIndex].exercises[exerciseIndex];
+    const serie = ex.pyramidSets.map((s, i) => (i === indice ? { ...s, ...patch } : s));
+    this.updateExercise(dayIndex, exerciseIndex, { pyramidSets: serie });
+  }
+
+  aggiungiSerie(dayIndex: number, exerciseIndex: number): void {
+    const ex = this.days()[dayIndex].exercises[exerciseIndex];
+    if (ex.pyramidSets.length >= 12) return;
+    const ultima = ex.pyramidSets[ex.pyramidSets.length - 1];
+    this.updateExercise(dayIndex, exerciseIndex, {
+      pyramidSets: [...ex.pyramidSets, { reps: ultima?.reps ?? '10', suggestedWeight: ultima?.suggestedWeight ?? null }],
+    });
+  }
+
+  rimuoviSerie(dayIndex: number, exerciseIndex: number, indice: number): void {
+    const ex = this.days()[dayIndex].exercises[exerciseIndex];
+    if (ex.pyramidSets.length <= 2) return;
+    this.updateExercise(dayIndex, exerciseIndex, {
+      pyramidSets: ex.pyramidSets.filter((_, i) => i !== indice),
+    });
+  }
+
+  numeroOppureNull(valore: unknown): number | null {
+    const testo = String(valore ?? '').trim().replace(',', '.');
+    if (testo === '') return null;
+    const n = Number(testo);
+    return Number.isNaN(n) ? null : n;
+  }
+
+  // ----------------------------------------------------------- salvataggio
+
+  /** I giorni nel formato che il server si aspetta. */
+  private giorniDaInviare(): WorkoutDayInput[] {
+    return this.days().map((day) => ({
+      label: day.label.trim() || 'Giorno',
+      exercises: day.exercises.map((ex) => {
+        const piramide = ex.kind === 'PYRAMID';
+        return {
+          exerciseId: ex.exerciseId,
+          sets: piramide ? ex.pyramidSets.length : ex.sets,
+          reps: piramide
+            ? ex.pyramidSets.map((s) => String(s.reps).trim()).join('-')
+            : String(ex.reps).trim() || '10',
+          restSeconds: ex.restSeconds ?? 60,
+          suggestedWeight: piramide ? null : ex.suggestedWeight ?? null,
+          notes: ex.notes?.trim() || undefined,
+          linkedToPrevious: ex.linkedToPrevious,
+          kind: ex.kind,
+          ...(piramide
+            ? {
+                pyramidSets: ex.pyramidSets.map((s) => ({
+                  reps: String(s.reps).trim(),
+                  suggestedWeight: s.suggestedWeight,
+                })),
+              }
+            : {}),
+        };
+      }),
+    }));
+  }
+
+  /**
+   * Salva il contenuto attuale come scheda rapida, senza toccare la scheda
+   * del cliente: utile per riusare una scheda appena costruita.
+   */
+  async salvaComeRapida(): Promise<void> {
+    if (!this.canSave) {
+      await this.showToast(this.blockingReason ?? 'Completa la scheda prima di salvarla.', 'warning');
+      return;
+    }
+
+    const alert = await this.alertController.create({
+      header: 'Salva come scheda rapida',
+      message: 'Ne viene salvata una copia da assegnare ad altri clienti. Questa scheda non cambia.',
+      inputs: [{ name: 'nome', type: 'text', value: this.name.trim(), placeholder: 'Nome della scheda rapida' }],
+      buttons: [
+        { text: 'Annulla', role: 'cancel' },
+        {
+          text: 'Salva',
+          role: 'confirm',
+          handler: (dati: { nome?: string }) => {
+            void this.creaRapida(dati.nome?.trim() || this.name.trim());
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async creaRapida(nome: string): Promise<void> {
+    try {
+      await this.workoutService.createTemplate({
+        name: nome,
+        notes: this.notes.trim() || undefined,
+        days: this.giorniDaInviare(),
+      });
+      await this.showToast(`"${nome}" salvata fra le schede rapide.`, 'success');
+    } catch (error: unknown) {
+      const err = error as { error?: { message?: string } };
+      await this.showToast(err?.error?.message ?? 'Salvataggio non riuscito.', 'danger');
+    }
+  }
+
   async save(): Promise<void> {
     if (!this.canSave || this.saving()) return;
 
     this.saving.set(true);
     this.errorMessage.set(null);
 
-    const payloadDays: WorkoutDayInput[] = this.days().map((day) => ({
-      label: day.label.trim() || 'Giorno',
-      exercises: day.exercises.map((ex) => ({
-        exerciseId: ex.exerciseId,
-        sets: ex.sets,
-        reps: String(ex.reps).trim() || '10',
-        restSeconds: ex.restSeconds ?? 60,
-        suggestedWeight: ex.suggestedWeight ?? null,
-        notes: ex.notes?.trim() || undefined,
-        linkedToPrevious: ex.linkedToPrevious,
-      })),
-    }));
+    const payloadDays = this.giorniDaInviare();
 
     try {
       if (this.modalitaModello()) {
@@ -833,7 +1242,8 @@ export class WorkoutBuilderPage implements OnInit {
         await this.showToast('Scheda creata e assegnata.', 'success');
       }
 
-      await this.router.navigate(['/istruttore/clienti', this.clientId, 'schede'], {
+      // Si torna al cliente, dove la scheda appena salvata compare come attiva.
+      await this.router.navigate(['/istruttore/clienti', this.clientId], {
         replaceUrl: true,
       });
     } catch (error: unknown) {

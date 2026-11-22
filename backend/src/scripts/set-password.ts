@@ -50,6 +50,8 @@ async function main(): Promise<void> {
       // L'istruttore non deve passare dal flusso di primo accesso,
       // pensato per i clienti.
       mustChangePassword: user.role === 'CLIENT',
+      // Le sessioni aperte con la vecchia password smettono di valere.
+      passwordChangedAt: new Date(),
     },
   });
 

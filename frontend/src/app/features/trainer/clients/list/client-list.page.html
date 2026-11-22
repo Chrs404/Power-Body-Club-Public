@@ -1,169 +1,97 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
-    <ion-title>Clienti</ion-title>
-  </ion-toolbar>
-  <ion-toolbar>
-    <!--
-      [value] + (ionInput) al posto di [(ngModel)]: il testo cercato e'
-      un signal, e va scritto con .set() perche' il filtro si aggiorni
-      mentre si digita. Con debounce 0 il riscontro e' immediato.
-    -->
-    <ion-searchbar
-      placeholder="Cerca per nome o username"
-      [value]="searchTerm()"
-      (ionInput)="aggiornaRicerca($event)"
-      [debounce]="0"
-    ></ion-searchbar>
-  </ion-toolbar>
-  <ion-toolbar>
-    <ion-segment [value]="filtro()" (ionChange)="impostaFiltro($any($event).detail.value)">
-      <ion-segment-button value="subscription">
-        <ion-icon name="card-outline"></ion-icon>
-        <ion-label>
-          Abbonamenti
-          @if (totaleUrgente('subscription') > 0) {
-            ({{ totaleUrgente('subscription') }})
-          }
-        </ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="workout">
-        <ion-icon name="barbell-outline"></ion-icon>
-        <ion-label>
-          Schede
-          @if (totaleUrgente('workout') > 0) {
-            ({{ totaleUrgente('workout') }})
-          }
-        </ion-label>
-      </ion-segment-button>
-    </ion-segment>
+    <div class="pbc-head" [class.pbc-head-largo]="largo()">
+      <div class="pbc-head-text">
+        <h1 class="pbc-h1">Clienti</h1>
+      </div>
+      <a class="pbc-btn primary small" routerLink="/istruttore/clienti/nuovo">
+        <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+        Nuovo
+      </a>
+    </div>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="pbc-con-fab">
+<ion-content>
   <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
-  @if (loading()) {
-    <div class="d-flex justify-content-center py-5">
-      <ion-spinner name="crescent"></ion-spinner>
+  <div class="colonne" [class.con-dettaglio]="largo()">
+    <div class="colonna-elenco">
+      <label class="cerca">
+        <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+        <input type="search" placeholder="Cerca per nome o username" aria-label="Cerca un cliente"
+          [value]="searchTerm()" (input)="aggiornaRicerca($event)" />
+      </label>
+
+      <div class="filtri" role="tablist" aria-label="Filtra i clienti">
+        <button type="button" class="pbc-chip" role="tab" [class.on]="filtro() === 'tutti'"
+          [attr.aria-selected]="filtro() === 'tutti'" (click)="filtro.set('tutti')">Tutti</button>
+        <button type="button" class="pbc-chip" role="tab" [class.on]="filtro() === 'rinnovi'"
+          [attr.aria-selected]="filtro() === 'rinnovi'" (click)="filtro.set('rinnovi')">
+          Da rinnovare · {{ contaRinnovi() }}
+        </button>
+        <button type="button" class="pbc-chip" role="tab" [class.on]="filtro() === 'eliminazione'"
+          [attr.aria-selected]="filtro() === 'eliminazione'" (click)="filtro.set('eliminazione')">
+          In eliminazione · {{ eliminazioni().length }}
+        </button>
+      </div>
+
+      @if (loading()) {
+        <div class="d-flex justify-content-center py-5">
+          <ion-spinner name="crescent"></ion-spinner>
+        </div>
+      } @else if (errorMessage()) {
+        <div class="alert alert-danger">{{ errorMessage() }}</div>
+      } @else if (elenco().length === 0) {
+        <div class="pbc-vuoto">
+          @if (searchTerm().trim()) {
+            Nessun cliente trovato per "{{ searchTerm() }}".
+          } @else if (filtro() === 'rinnovi') {
+            Nessun cliente da rinnovare nei prossimi 7 giorni.
+          } @else if (filtro() === 'eliminazione') {
+            Nessun cliente in eliminazione.
+          } @else {
+            Nessun cliente registrato.
+          }
+        </div>
+      } @else {
+        <div class="pbc-card elenco">
+          @for (r of elenco(); track r.clientId) {
+            <button type="button" class="riga" [class.scelta]="largo() && selezionato() === r.clientId"
+              (click)="apri(r)">
+              <span class="iniziale" aria-hidden="true">{{ iniziale(r.nome) }}</span>
+              <span class="testo">
+                <span class="nome">{{ r.nome }}</span>
+                <span class="pillole">
+                  @if (r.eliminazione; as e) {
+                    <span class="pbc-pill bad">{{ testoEliminazione(e) }}</span>
+                  } @else {
+                    @let a = pillola(r.abbonamento, 'subscription');
+                    @let s = pillola(r.scheda, 'workout');
+                    <span class="pbc-pill" [class]="a.tono">{{ a.testo }}</span>
+                    <span class="pbc-pill" [class]="s.tono">{{ s.testo }}</span>
+                  }
+                </span>
+              </span>
+              @if (!largo()) {
+                <ion-icon name="chevron-forward-outline" class="freccia" aria-hidden="true"></ion-icon>
+              }
+            </button>
+          }
+        </div>
+      }
     </div>
-  } @else if (errorMessage()) {
-    <div class="alert alert-danger m-3">{{ errorMessage() }}</div>
-  } @else if (elementiFiltrati().length === 0) {
-    <div class="pbc-empty">
-      <ion-icon name="checkmark-circle-outline"></ion-icon>
-      <p class="mt-3 mb-0">
-        @if (searchTerm().trim()) {
-          Nessun cliente trovato per "{{ searchTerm() }}".
+
+    @if (largo()) {
+      <div class="colonna-dettaglio">
+        @if (selezionato(); as id) {
+          <app-client-detail [clientId]="id" [incorporato]="true" (cambiato)="load()"></app-client-detail>
         } @else {
-          Nessun cliente registrato.
+          <div class="pbc-vuoto">Scegli un cliente dall'elenco per vederne abbonamento e schede.</div>
         }
-      </p>
-    </div>
-  } @else {
-
-    <ion-list>
-      @if (scaduti().length > 0) {
-        <ion-list-header>
-          <ion-icon name="alert-circle-outline" color="danger" class="me-2"></ion-icon>
-          <ion-label color="danger">Scaduti</ion-label>
-        </ion-list-header>
-
-        @for (item of scaduti(); track item.clientId) {
-          <ion-item button [detail]="false" (click)="vaiAlCliente(item)">
-            <div slot="start" class="avatar scaduto">{{ iniziale(item.clientName) }}</div>
-            <ion-label>
-              <h2>{{ item.clientName }}</h2>
-              <p>{{ item.label }}</p>
-            </ion-label>
-            <div slot="end" class="esito">
-              <span class="badge-scadenza scaduto">{{ testoScadenza(item) }}</span>
-              <ion-icon name="chevron-forward-outline"></ion-icon>
-            </div>
-          </ion-item>
-        }
-      }
-
-      @if (urgenti().length > 0) {
-        <ion-list-header>
-          <ion-icon name="time-outline" color="warning" class="me-2"></ion-icon>
-          <ion-label>In scadenza</ion-label>
-        </ion-list-header>
-
-        @for (item of urgenti(); track item.clientId) {
-          <ion-item button [detail]="false" (click)="vaiAlCliente(item)">
-            <div slot="start" class="avatar urgente">{{ iniziale(item.clientName) }}</div>
-            <ion-label>
-              <h2>{{ item.clientName }}</h2>
-              <p>{{ item.label }}</p>
-            </ion-label>
-            <div slot="end" class="esito">
-              <span class="badge-scadenza urgente">{{ testoScadenza(item) }}</span>
-              <ion-icon name="chevron-forward-outline"></ion-icon>
-            </div>
-          </ion-item>
-        }
-      }
-
-      @if (inRegola().length > 0) {
-        <ion-list-header>
-          <ion-icon name="checkmark-circle-outline" color="medium" class="me-2"></ion-icon>
-          <ion-label>In regola</ion-label>
-        </ion-list-header>
-
-        @for (item of inRegola(); track item.clientId) {
-          <ion-item button [detail]="false" (click)="vaiAlCliente(item)">
-            <div slot="start" class="avatar in-arrivo">{{ iniziale(item.clientName) }}</div>
-            <ion-label>
-              <h2>{{ item.clientName }}</h2>
-              <p>{{ item.label }}</p>
-            </ion-label>
-            <div slot="end" class="esito">
-              <span class="badge-scadenza in-arrivo">{{ testoScadenza(item) }}</span>
-              <ion-icon name="chevron-forward-outline"></ion-icon>
-            </div>
-          </ion-item>
-        }
-      }
-
-      <!--
-        In fondo, e in grigio: chi non ha nulla da rinnovare non e' un
-        caso urgente, ma deve restare raggiungibile. Senza badge, perche'
-        non c'e' alcuna data da mostrare: lo dice gia' il sottotitolo.
-      -->
-      @if (senzaScadenza().length > 0) {
-        <ion-list-header>
-          <ion-icon name="ellipse-outline" color="medium" class="me-2"></ion-icon>
-          <ion-label>
-            @if (filtro() === 'subscription') {
-              Senza abbonamento
-            } @else {
-              Senza scheda
-            }
-          </ion-label>
-        </ion-list-header>
-
-        @for (item of senzaScadenza(); track item.clientId) {
-          <ion-item button [detail]="false" (click)="vaiAlCliente(item)">
-            <div slot="start" class="avatar">{{ iniziale(item.clientName) }}</div>
-            <ion-label>
-              <h2>{{ item.clientName }}</h2>
-              <p>{{ item.label }}</p>
-            </ion-label>
-            <div slot="end" class="esito">
-              <ion-icon name="chevron-forward-outline"></ion-icon>
-            </div>
-          </ion-item>
-        }
-      }
-    </ion-list>
-
-  }
-
-  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
-    <ion-fab-button routerLink="/istruttore/clienti/nuovo">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
+      </div>
+    }
+  </div>
 </ion-content>

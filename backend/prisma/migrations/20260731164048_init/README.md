@@ -1,8 +1,6 @@
-Segnaposto per la migrazione iniziale.
+Migrazione iniziale.
 
-Il file `migration.sql` di questa cartella viene generato da Prisma
-sulla macchina di sviluppo con `prisma migrate dev --name init`
-e non e' incluso nei pacchetti.
-
-Se questa cartella e' vuota, copia il contenuto dalla cartella del
-progetto precedente. Se non l'hai piu', vedi MIGRAZIONI.md.
+`migration.sql` crea l'intero database com'era alla prima versione ed e'
+stato ricostruito dallo schema (nel repository mancava). Serve solo per i
+database nuovi, per esempio quello di Docker in locale: sul database di
+produzione le tabelle esistono gia' e non va eseguito.

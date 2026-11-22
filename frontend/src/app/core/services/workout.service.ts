@@ -52,11 +52,15 @@ export class WorkoutService {
     return res.workouts;
   }
 
-  async getMyActive(): Promise<Workout | null> {
+  /**
+   * Scheda attiva del cliente e indice del giorno da proporre per primo
+   * (lo stesso "prossimo allenamento" della Home).
+   */
+  async getMyActive(): Promise<{ workout: Workout | null; nextDayIndex: number }> {
     const res = await firstValueFrom(
-      this.http.get<{ workout: Workout | null }>(`${this.base}/me/active`)
+      this.http.get<{ workout: Workout | null; nextDayIndex?: number }>(`${this.base}/me/active`)
     );
-    return res.workout;
+    return { workout: res.workout, nextDayIndex: res.nextDayIndex ?? 0 };
   }
 
   async create(data: CreateWorkoutRequest): Promise<Workout> {
@@ -125,6 +129,13 @@ export class WorkoutService {
       this.http.get(`${this.base}/modelli/${id}/pdf`, { responseType: 'blob' })
     );
     await this.salvaPdf(blob, nomeFile);
+  }
+
+  /** Copia una scheda di un cliente fra le schede rapide; la scheda resta com'e'. */
+  async saveAsTemplate(workoutId: number, name?: string): Promise<void> {
+    await firstValueFrom(
+      this.http.post(`${this.base}/${workoutId}/save-as-template`, name ? { name } : {})
+    );
   }
 
   async assignTemplate(id: number, data: AssignTemplateRequest): Promise<void> {

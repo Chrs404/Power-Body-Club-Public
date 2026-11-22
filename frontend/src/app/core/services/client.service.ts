@@ -41,10 +41,28 @@ export class ClientService {
   }
 
   async getById(id: number): Promise<ClientDetail> {
+    return (await this.getDetail(id)).client;
+  }
+
+  /**
+   * Cliente con lo stato dell'eliminazione automatica: deletion e' null
+   * se il cliente non rischia di essere eliminato.
+   */
+  async getDetail(
+    id: number
+  ): Promise<{ client: ClientDetail; deletion: { deleteOn: string; daysLeft: number } | null }> {
     const res = await firstValueFrom(
-      this.http.get<{ client: ClientDetail }>(`${this.base}/${id}`)
+      this.http.get<{
+        client: ClientDetail;
+        deletion?: { deleteOn: string; daysLeft: number } | null;
+      }>(`${this.base}/${id}`)
     );
-    return res.client;
+    return { client: res.client, deletion: res.deletion ?? null };
+  }
+
+  /** Rimanda di 15 giorni l'eliminazione automatica del cliente. */
+  async postponeDeletion(id: number): Promise<void> {
+    await firstValueFrom(this.http.post(`${this.base}/${id}/postpone-deletion`, {}));
   }
 
   async create(

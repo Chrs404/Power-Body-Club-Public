@@ -2,6 +2,16 @@ import { Exercise, MuscleGroup } from './exercise.model';
 
 export type WorkoutStatus = 'ACTIVE' | 'ARCHIVED';
 
+/** NORMAL: stesse ripetizioni e peso per ogni serie. PYRAMID: ogni serie ha i suoi. */
+export type ExerciseKind = 'NORMAL' | 'PYRAMID';
+
+/** Una serie di un esercizio piramidale. */
+export interface PyramidSet {
+  order: number;
+  reps: string;
+  suggestedWeight: string | number | null;
+}
+
 export interface WorkoutExercise {
   id: number;
   exerciseId: number;
@@ -13,6 +23,10 @@ export interface WorkoutExercise {
   notes: string | null;
   /** Superset: eseguito di fila con l'esercizio precedente. */
   linkedToPrevious: boolean;
+  /** Assente nelle risposte dei server precedenti alla 2.0: vale NORMAL. */
+  kind?: ExerciseKind;
+  /** Serie della piramidale, in ordine; vuoto per gli esercizi normali. */
+  pyramidSets?: PyramidSet[];
   exercise: Pick<
     Exercise,
     'id' | 'name' | 'description' | 'imageUrl' | 'videoUrl'
@@ -51,6 +65,8 @@ export interface WorkoutExerciseInput {
   suggestedWeight?: number | null;
   notes?: string;
   linkedToPrevious?: boolean;
+  kind?: ExerciseKind;
+  pyramidSets?: { reps: string; suggestedWeight?: number | null }[];
 }
 
 export interface WorkoutDayInput {

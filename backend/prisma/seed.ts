@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import dotenv from 'dotenv';
 import { PrismaClient } from '@prisma/client';
 import { hashPassword } from '../src/utils/password';
@@ -10,18 +11,25 @@ dotenv.config();
 const prisma = new PrismaClient();
 
 // Credenziali dell'istruttore.
-// In produzione vanno passate da variabili d'ambiente: scriverle nel codice
-// significa pubblicarle, se il repository e' visibile.
-// In locale i valori di ripiego vanno benissimo.
-const TRAINER_USERNAME = process.env.TRAINER_USERNAME ?? 'istruttore';
-const TRAINER_PASSWORD = process.env.TRAINER_PASSWORD ?? 'Palestra2026!';
+// La password non sta MAI nel codice: il repository e' pubblico, e una
+// password di ripiego scritta qui sarebbe nota a chiunque.
+// - Con TRAINER_PASSWORD impostata, si usa quella.
+// - Senza, in locale ne viene generata una casuale e mostrata una volta
+//   sola alla creazione dell'istruttore; in produzione il seed si ferma.
+const TRAINER_USERNAME = (process.env.TRAINER_USERNAME ?? 'istruttore').trim().toLowerCase();
+const PASSWORD_DA_AMBIENTE = process.env.TRAINER_PASSWORD?.trim() || null;
 
-if (process.env.NODE_ENV === 'production' && !process.env.TRAINER_PASSWORD) {
+if (process.env.NODE_ENV === 'production' && !PASSWORD_DA_AMBIENTE) {
   console.error(
-    '\nRifiuto di eseguire il seed in produzione con la password predefinita.' +
+    '\nRifiuto di eseguire il seed in produzione senza una password scelta.' +
       '\nImposta la variabile TRAINER_PASSWORD prima di procedere.\n'
   );
   process.exit(1);
+}
+
+/** Password casuale per lo sviluppo: lettere e cifre, 16 caratteri. */
+function passwordCasuale(): string {
+  return randomBytes(12).toString('base64url');
 }
 
 const WEEKDAY_SCHEDULE = [
@@ -78,22 +86,26 @@ const EXERCISES = [
 async function main(): Promise<void> {
   console.log('Seed avviato...');
 
-  // Istruttore. upsert rende il seed rieseguibile senza errori di duplicato.
-  const passwordHash = await hashPassword(TRAINER_PASSWORD);
+  // Istruttore. Se esiste gia' non viene toccato: il seed e' rieseguibile
+  // e non sovrascrive mai una password in uso.
+  let trainer = await prisma.user.findUnique({ where: { username: TRAINER_USERNAME } });
+  let passwordGenerata: string | null = null;
 
-  const trainer = await prisma.user.upsert({
-    where: { username: TRAINER_USERNAME },
-    update: {},
-    create: {
-      username: TRAINER_USERNAME,
-      passwordHash,
-      role: 'TRAINER',
-      firstName: 'Istruttore',
-      lastName: 'Palestra',
-      // false: l'istruttore non passa dal flusso di primo accesso.
-      mustChangePassword: false,
-    },
-  });
+  if (!trainer) {
+    const password = PASSWORD_DA_AMBIENTE ?? (passwordGenerata = passwordCasuale());
+
+    trainer = await prisma.user.create({
+      data: {
+        username: TRAINER_USERNAME,
+        passwordHash: await hashPassword(password),
+        role: 'TRAINER',
+        firstName: 'Istruttore',
+        lastName: 'Palestra',
+        // false: l'istruttore non passa dal flusso di primo accesso.
+        mustChangePassword: false,
+      },
+    });
+  }
   console.log(`Istruttore pronto (id ${trainer.id}, username "${trainer.username}")`);
 
   // Orari settimanali: lun-ven 07:00-22:00, sabato 09:00-13:00, domenica chiusa.
@@ -130,7 +142,18 @@ async function main(): Promise<void> {
   console.log(`Catalogo esercizi: ${created} esercizi disponibili`);
 
   console.log('\nSeed completato.');
-  console.log(`Credenziali istruttore -> username: ${TRAINER_USERNAME} / password: ${TRAINER_PASSWORD}`);
+
+  // La password si mostra solo se e' stata generata qui: quella passata
+  // da variabile d'ambiente e' gia' nota a chi l'ha impostata, e non deve
+  // finire nei log.
+  if (passwordGenerata) {
+    console.log('');
+    console.log('  Istruttore creato con una password casuale. Annotala ora:');
+    console.log(`  username: ${TRAINER_USERNAME}`);
+    console.log(`  password: ${passwordGenerata}`);
+    console.log('  Per sceglierne una: npm run set-password -- ' + TRAINER_USERNAME + ' <nuova-password>');
+    console.log('');
+  }
 }
 
 main()

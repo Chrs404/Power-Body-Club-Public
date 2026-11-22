@@ -21,6 +21,14 @@ enum WorkoutStatus {
   ARCHIVED
 }
 
+// Come si esegue un esercizio in scheda.
+//   NORMAL  = stesse ripetizioni e stesso peso per tutte le serie
+//   PYRAMID = ogni serie ha le sue ripetizioni e il suo peso (piramidale)
+enum ExerciseKind {
+  NORMAL
+  PYRAMID
+}
+
 enum MuscleGroup {
   QUADRICEPS
   ADDUCTORS
@@ -71,6 +79,16 @@ model User {
 
   mustChangePassword Boolean @default(true)
   isActive           Boolean @default(true)
+
+  // Ultimo cambio o reset della password. I token emessi prima di questo
+  // istante vengono respinti (vedi middleware/authenticate.ts).
+  // NULL = mai cambiata da quando esiste la colonna: nessun token escluso.
+  passwordChangedAt DateTime?
+
+  // Eliminazione automatica: un cliente con abbonamento e scheda entrambi
+  // scaduti viene eliminato dopo 15 giorni (vedi services/cleanup.service.ts).
+  // "Rimanda" scrive qui la data prima della quale non va eliminato.
+  deletionPostponedUntil DateTime? @db.Date
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -203,12 +221,35 @@ model WorkoutExercise {
   // ha sempre linkedToPrevious = false, garantito dal service.
   linkedToPrevious Boolean @default(false)
 
-  workoutDay  WorkoutDay          @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
-  exercise    Exercise            @relation(fields: [exerciseId], references: [id])
+  // Piramidale: le serie stanno in pyramidSets, una riga ciascuna.
+  // "sets" e "reps" restano comunque valorizzati (numero di serie e
+  // riepilogo "12-10-8-6"): cosi' il PDF e ogni punto che li mostra
+  // continuano a funzionare senza conoscere il dettaglio.
+  kind ExerciseKind @default(NORMAL)
+
+  workoutDay  WorkoutDay           @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+  exercise    Exercise             @relation(fields: [exerciseId], references: [id])
   completions CompletedExercise[]
+  pyramidSets WorkoutExerciseSet[]
 
   @@unique([workoutDayId, order])
   @@index([exerciseId])
+}
+
+// Una serie di un esercizio piramidale.
+model WorkoutExerciseSet {
+  id                Int @id @default(autoincrement())
+  workoutExerciseId Int
+
+  order Int
+
+  // String come in WorkoutExercise: "12", "8-10", "max".
+  reps            String
+  suggestedWeight Decimal? @db.Decimal(6, 2)
+
+  workoutExercise WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([workoutExerciseId, order])
 }
 
 // ---------------------------------------------------------------------------
@@ -262,6 +303,11 @@ model WeightLog {
   weight      Decimal  @db.Decimal(6, 2)
   reps        Int?
   performedAt DateTime @db.Date
+
+  // Solo per gli esercizi piramidali: a quale serie si riferisce il peso
+  // (1, 2, 3...). Le serie dello stesso giorno formano una registrazione
+  // sola. NULL = registrazione normale, un peso per tutto l'esercizio.
+  setNumber Int?
   notes       String?
 
   createdAt DateTime @default(now())

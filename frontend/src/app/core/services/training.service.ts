@@ -5,7 +5,7 @@ import { firstValueFrom } from 'rxjs';
 import { API_BASE_URL } from '../config/api.config';
 import {
   TrainingSession, SessionHistoryItem, WeightLog, LatestWeight,
-  CreateWeightLogRequest,
+  CreateWeightLogRequest, UpdateWeightLogRequest,
 } from '../models/training.model';
 
 @Injectable({ providedIn: 'root' })
@@ -78,7 +78,16 @@ export class TrainingService {
     await firstValueFrom(this.http.post(`${this.base}/weights`, data));
   }
 
-  async deleteWeightLog(id: number): Promise<void> {
-    await firstValueFrom(this.http.delete(`${this.base}/weights/${id}`));
+  async updateWeightLog(id: number, data: UpdateWeightLogRequest): Promise<void> {
+    await firstValueFrom(this.http.patch(`${this.base}/weights/${id}`, data));
+  }
+
+  /**
+   * Elimina una registrazione. Con `interaRegistrazione`, per una
+   * piramidale elimina tutte le serie di quel giorno.
+   */
+  async deleteWeightLog(id: number, interaRegistrazione = false): Promise<void> {
+    const params = interaRegistrazione ? new HttpParams().set('all', 'true') : undefined;
+    await firstValueFrom(this.http.delete(`${this.base}/weights/${id}`, { params }));
   }
 }

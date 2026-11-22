@@ -1,19 +1,24 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import {
+  Component, EventEmitter, Input, OnChanges, Output, inject, signal, OnInit,
+} from '@angular/core';
+import { DatePipe, NgTemplateOutlet } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton,
-  IonButton, IonInput, IonItem, IonList, IonListHeader, IonLabel, IonSpinner,
-  IonTextarea, IonToggle, IonBadge, IonNote, IonModal, IonIcon, IonAccordion,
-  IonAccordionGroup, AlertController, ToastController,
+  IonButton, IonInput, IonItem, IonList, IonSpinner,
+  IonTextarea, IonToggle, IonModal, IonIcon,
+  AlertController, ToastController,
   IonRefresher, IonRefresherContent,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   keyOutline, addCircleOutline, trashOutline, documentTextOutline,
-  personRemoveOutline,
+  personRemoveOutline, timeOutline, bookmarkOutline, chevronDownOutline, chevronUpOutline,
 } from 'ionicons/icons';
+
+import { WorkoutService } from '../../../../core/services/workout.service';
+import { WorkoutSummary } from '../../../../core/models/workout.model';
 
 import { ClientService } from '../../../../core/services/client.service';
 import {
@@ -21,24 +26,31 @@ import {
   GeneratedCredentials,
   SubscriptionInfo,
 } from '../../../../core/models/client.model';
-import { SubscriptionStatusPipe } from '../../../../shared/pipes/subscription-status.pipe';
-import { SubscriptionColorPipe } from '../../../../shared/pipes/subscription-color.pipe';
 
 @Component({
   selector: 'app-client-detail',
   imports: [
-    ReactiveFormsModule, DatePipe, RouterLink,
-    SubscriptionStatusPipe, SubscriptionColorPipe,
+    ReactiveFormsModule, DatePipe, RouterLink, NgTemplateOutlet,
     IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton,
-    IonButton, IonInput, IonItem, IonList, IonListHeader, IonLabel, IonSpinner,
-    IonTextarea, IonToggle, IonBadge, IonNote, IonModal, IonIcon,
-    IonAccordion, IonAccordionGroup,
+    IonButton, IonInput, IonItem, IonList, IonSpinner,
+    IonTextarea, IonToggle, IonModal, IonIcon,
     IonRefresher, IonRefresherContent,
   ],
   templateUrl: './client-detail.page.html',
   styleUrl: './client-detail.page.css',
 })
-export class ClientDetailPage implements OnInit {
+export class ClientDetailPage implements OnInit, OnChanges {
+  /**
+   * Cliente da mostrare quando la pagina e' incorporata nell'elenco
+   * (computer, due colonne). Come pagina a se' l'id arriva dall'indirizzo.
+   */
+  @Input() clientId?: number;
+  /** Senza intestazione ne' area di scorrimento propria: sta dentro un'altra pagina. */
+  @Input() incorporato = false;
+  /** Avvisa l'elenco che qualcosa e' cambiato (rinnovo, eliminazione...). */
+  @Output() readonly cambiato = new EventEmitter<void>();
+
+  private readonly workoutService = inject(WorkoutService);
   private readonly fb = inject(FormBuilder);
   private readonly clientService = inject(ClientService);
   private readonly route = inject(ActivatedRoute);
@@ -53,7 +65,15 @@ export class ClientDetailPage implements OnInit {
   readonly newCredentials = signal<GeneratedCredentials | null>(null);
   readonly subscriptionModalOpen = signal(false);
 
-  private clientId = 0;
+  /** Eliminazione automatica: null se il cliente non rischia nulla. */
+  readonly eliminazione = signal<{ deleteOn: string; daysLeft: number } | null>(null);
+  readonly schedaAttiva = signal<WorkoutSummary | null>(null);
+  readonly schedePrecedenti = signal<WorkoutSummary[]>([]);
+  readonly storicoAperto = signal(false);
+  readonly datiAperti = signal(false);
+  readonly operazione = signal(false);
+
+  private id = 0;
 
   readonly form = this.fb.nonNullable.group({
     firstName: ['', [Validators.required, Validators.minLength(2)]],
@@ -74,7 +94,7 @@ export class ClientDetailPage implements OnInit {
   constructor() {
     addIcons({
       keyOutline, addCircleOutline, trashOutline, documentTextOutline,
-      personRemoveOutline,
+      personRemoveOutline, timeOutline, bookmarkOutline, chevronDownOutline, chevronUpOutline,
     });
   }
 
@@ -85,15 +105,57 @@ export class ClientDetailPage implements OnInit {
   }
 
   ngOnInit(): void {
-    this.clientId = Number(this.route.snapshot.paramMap.get('id'));
+    if (this.clientId === undefined) {
+      this.id = Number(this.route.snapshot.paramMap.get('id'));
+      void this.load().then(() => {
+        // "Rinnova" dalla Home apre subito il nuovo abbonamento.
+        if (this.route.snapshot.queryParamMap.get('rinnova') && this.client()) {
+          this.openSubscriptionModal();
+        }
+      });
+    }
+  }
+
+  // ngOnInit ha già caricato i dati: al primo ingresso non serve rifarlo.
+  private primoIngresso = true;
+
+  /**
+   * Tornando qui dal costruttore (nuova scheda, modifica) Ionic riusa la
+   * pagina gia' aperta senza ricrearla: senza ricaricare, la scheda attiva
+   * mostrata sarebbe ancora quella di prima.
+   */
+  ionViewWillEnter(): void {
+    if (this.primoIngresso || this.incorporato) {
+      this.primoIngresso = false;
+      return;
+    }
     void this.load();
+  }
+
+  ngOnChanges(): void {
+    // Incorporata: si ricarica ogni volta che nell'elenco si sceglie un altro cliente.
+    if (this.clientId !== undefined && this.clientId !== this.id) {
+      this.id = this.clientId;
+      this.newCredentials.set(null);
+      this.storicoAperto.set(false);
+      this.datiAperti.set(false);
+      this.errorMessage.set(null);
+      void this.load();
+    }
   }
 
   private async load(): Promise<void> {
     this.loading.set(true);
     try {
-      const client = await this.clientService.getById(this.clientId);
+      const [{ client, deletion }, attive, archiviate] = await Promise.all([
+        this.clientService.getDetail(this.id),
+        this.workoutService.listForClient(this.id, 'ACTIVE', 1),
+        this.workoutService.listForClient(this.id, 'ARCHIVED', 5),
+      ]);
       this.client.set(client);
+      this.eliminazione.set(deletion);
+      this.schedaAttiva.set(attive[0] ?? null);
+      this.schedePrecedenti.set(archiviate);
       this.form.patchValue({
         firstName: client.firstName ?? '',
         lastName: client.lastName ?? '',
@@ -121,7 +183,7 @@ export class ClientDetailPage implements OnInit {
     const v = this.form.getRawValue();
 
     try {
-      await this.clientService.update(this.clientId, {
+      await this.clientService.update(this.id, {
         firstName: v.firstName,
         lastName: v.lastName,
         email: v.email.trim(),
@@ -132,6 +194,7 @@ export class ClientDetailPage implements OnInit {
       });
       await this.showToast('Modifiche salvate.', 'success');
       await this.load();
+      this.cambiato.emit();
     } catch (error: unknown) {
       const err = error as { error?: { message?: string } };
       await this.showToast(err?.error?.message ?? 'Salvataggio non riuscito.', 'danger');
@@ -155,7 +218,7 @@ export class ClientDetailPage implements OnInit {
 
   private async resetPassword(): Promise<void> {
     try {
-      this.newCredentials.set(await this.clientService.resetPassword(this.clientId));
+      this.newCredentials.set(await this.clientService.resetPassword(this.id));
       await this.load();
     } catch {
       await this.showToast('Impossibile reimpostare la password.', 'danger');
@@ -183,7 +246,7 @@ export class ClientDetailPage implements OnInit {
 
     const v = this.subscriptionForm.getRawValue();
     try {
-      await this.clientService.addSubscription(this.clientId, {
+      await this.clientService.addSubscription(this.id, {
         startDate: v.startDate,
         endDate: v.endDate,
         plan: v.plan.trim() || undefined,
@@ -191,6 +254,7 @@ export class ClientDetailPage implements OnInit {
       this.subscriptionModalOpen.set(false);
       await this.showToast('Abbonamento registrato.', 'success');
       await this.load();
+      this.cambiato.emit();
     } catch (error: unknown) {
       const err = error as { error?: { message?: string } };
       await this.showToast(err?.error?.message ?? 'Operazione non riuscita.', 'danger');
@@ -232,9 +296,10 @@ export class ClientDetailPage implements OnInit {
 
   private async deleteSubscription(subscriptionId: number): Promise<void> {
     try {
-      await this.clientService.deleteSubscription(this.clientId, subscriptionId);
+      await this.clientService.deleteSubscription(this.id, subscriptionId);
       await this.showToast('Abbonamento eliminato.', 'success');
       await this.load();
+      this.cambiato.emit();
     } catch (error: unknown) {
       const err = error as { error?: { message?: string } };
       await this.showToast(
@@ -260,7 +325,7 @@ export class ClientDetailPage implements OnInit {
 
     let riepilogo: { schede: number; sessioni: number; pesi: number; abbonamenti: number };
     try {
-      riepilogo = await this.clientService.deletionPreview(this.clientId);
+      riepilogo = await this.clientService.deletionPreview(this.id);
     } catch {
       await this.showToast('Impossibile verificare i dati del cliente.', 'danger');
       return;
@@ -320,12 +385,100 @@ export class ClientDetailPage implements OnInit {
 
   private async elimina(): Promise<void> {
     try {
-      await this.clientService.delete(this.clientId);
+      await this.clientService.delete(this.id);
       await this.showToast('Cliente eliminato definitivamente.', 'success');
-      await this.router.navigate(['/istruttore/clienti'], { replaceUrl: true });
+      if (this.incorporato) {
+        this.client.set(null);
+        this.cambiato.emit();
+      } else {
+        await this.router.navigate(['/istruttore/clienti'], { replaceUrl: true });
+      }
     } catch (error: unknown) {
       const err = error as { error?: { message?: string } };
       await this.showToast(err?.error?.message ?? 'Eliminazione non riuscita.', 'danger');
+    }
+  }
+
+  // ------------------------------------------------- eliminazione automatica
+
+  quandoEliminazione(giorni: number): string {
+    if (giorni <= 0) return 'alla prossima pulizia';
+    if (giorni === 1) return 'domani';
+    return `fra ${giorni} giorni`;
+  }
+
+  async rimandaEliminazione(): Promise<void> {
+    if (this.operazione()) return;
+    this.operazione.set(true);
+    try {
+      await this.clientService.postponeDeletion(this.id);
+      await this.showToast('Eliminazione rimandata di 15 giorni.', 'success');
+      await this.load();
+      this.cambiato.emit();
+    } catch {
+      await this.showToast('Operazione non riuscita.', 'danger');
+    } finally {
+      this.operazione.set(false);
+    }
+  }
+
+  // ------------------------------------------------------------- schede
+
+  /** Giorni a una data "YYYY-MM-DD"; negativo se gia' passata. */
+  giorniA(data: string | null): number | null {
+    if (!data) return null;
+    const fine = Date.UTC(+data.slice(0, 4), +data.slice(5, 7) - 1, +data.slice(8, 10));
+    const ora = new Date();
+    return Math.round((fine - Date.UTC(ora.getFullYear(), ora.getMonth(), ora.getDate())) / 86_400_000);
+  }
+
+  tono(giorni: number | null): 'ok' | 'warn' | 'bad' | '' {
+    if (giorni === null) return '';
+    if (giorni < 0) return 'bad';
+    if (giorni <= 7) return 'warn';
+    return 'ok';
+  }
+
+  scadenza(giorni: number | null, femminile = false): string {
+    if (giorni === null) return 'Senza scadenza';
+    if (giorni < 0) {
+      return `Scadut${femminile ? 'a' : 'o'} da ${-giorni} ${-giorni === 1 ? 'giorno' : 'giorni'}`;
+    }
+    if (giorni === 0) return 'Scade oggi';
+    if (giorni === 1) return 'Scade domani';
+    return `${giorni} giorni`;
+  }
+
+  /** Copia la scheda attiva fra le schede rapide, chiedendo il nome. */
+  async salvaComeRapida(): Promise<void> {
+    const scheda = this.schedaAttiva();
+    if (!scheda) return;
+
+    const alert = await this.alertController.create({
+      header: 'Salva come scheda rapida',
+      message: 'La scheda del cliente resta com\'è: ne viene salvata una copia da riassegnare ad altri.',
+      inputs: [{ name: 'nome', type: 'text', value: scheda.name, placeholder: 'Nome della scheda rapida' }],
+      buttons: [
+        { text: 'Annulla', role: 'cancel' },
+        {
+          text: 'Salva',
+          role: 'confirm',
+          handler: (dati: { nome?: string }) => {
+            void this.eseguiSalvataggioRapida(scheda.id, dati.nome?.trim() || scheda.name);
+          },
+        },
+      ],
+    });
+    await alert.present();
+  }
+
+  private async eseguiSalvataggioRapida(workoutId: number, nome: string): Promise<void> {
+    try {
+      await this.workoutService.saveAsTemplate(workoutId, nome);
+      await this.showToast(`"${nome}" salvata fra le schede rapide.`, 'success');
+    } catch (error: unknown) {
+      const err = error as { error?: { message?: string } };
+      await this.showToast(err?.error?.message ?? 'Salvataggio non riuscito.', 'danger');
     }
   }
 

@@ -2,17 +2,14 @@ import { Component, inject, signal, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import {
-  IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonButton,
-  IonSegment, IonSegmentButton, IonLabel, IonList, IonItem, IonSpinner,
-  IonIcon, IonBadge, IonNote, IonModal, IonInput, IonTextarea, IonToggle,
-  IonFab, IonFabButton,
+  IonContent, IonHeader, IonToolbar, IonSpinner, IonIcon, IonModal, IonToggle, IonFooter,
   AlertController, ToastController,
   IonRefresher, IonRefresherContent,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   add, createOutline, trashOutline, megaphoneOutline, saveOutline,
-  closeCircleOutline, calendarOutline,
+  closeCircleOutline, calendarOutline, closeOutline,
 } from 'ionicons/icons';
 
 import { GymService } from '../../../core/services/gym.service';
@@ -38,10 +35,7 @@ type Sezione = 'news' | 'orari' | 'chiusure';
   selector: 'app-trainer-gym',
   imports: [
     DatePipe, ReactiveFormsModule, FormsModule,
-    IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonButton,
-    IonSegment, IonSegmentButton, IonLabel, IonList, IonItem, IonSpinner,
-    IonIcon, IonBadge, IonNote, IonModal, IonInput, IonTextarea, IonToggle,
-    IonFab, IonFabButton,
+    IonContent, IonHeader, IonToolbar, IonSpinner, IonIcon, IonModal, IonToggle, IonFooter,
     IonRefresher, IonRefresherContent,
   ],
   templateUrl: './trainer-gym.page.html',
@@ -84,7 +78,7 @@ export class TrainerGymPage implements OnInit {
   constructor() {
     addIcons({
       add, createOutline, trashOutline, megaphoneOutline, saveOutline,
-      closeCircleOutline, calendarOutline,
+      closeCircleOutline, calendarOutline, closeOutline,
     });
   }
 

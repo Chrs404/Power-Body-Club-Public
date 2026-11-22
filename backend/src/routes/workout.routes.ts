@@ -8,6 +8,7 @@ import {
   updateWorkoutSchema,
   createTemplateSchema,
   assignTemplateSchema,
+  saveAsTemplateSchema,
 } from '../schemas/workout.schema';
 
 const router = Router();
@@ -58,6 +59,11 @@ router.patch('/:id', validate(updateWorkoutSchema), workoutController.update);
 router.post('/:id/archive', workoutController.archive);
 router.post('/:id/activate', workoutController.activate);
 router.post('/:id/duplicate', workoutController.duplicate);
+router.post(
+  '/:id/save-as-template',
+  validate(saveAsTemplateSchema),
+  workoutController.saveAsTemplate
+);
 router.delete('/:id', workoutController.remove);
 
 export default router;

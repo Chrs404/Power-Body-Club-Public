@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as renewalsService from '../services/renewals.service';
+import * as cleanupService from '../services/cleanup.service';
 import { listRenewalsQuerySchema } from '../schemas/renewals.schema';
 import { badRequest } from '../utils/app-error';
 
@@ -9,7 +10,13 @@ export async function list(req: Request, res: Response): Promise<void> {
     throw badRequest('Parametri non validi.');
   }
 
-  const items = await renewalsService.getRenewals(parsed.data.giorni);
+  // Insieme alle scadenze, i clienti che stanno per essere eliminati:
+  // la pagina Clienti e la Home li mostrano accanto, e una sola chiamata
+  // garantisce che i due elenchi descrivano lo stesso istante.
+  const [items, deletions] = await Promise.all([
+    renewalsService.getRenewals(parsed.data.giorni),
+    cleanupService.getClientiInEliminazione(),
+  ]);
 
   // Conteggi derivati dalla stessa lista: l'elenco per una singola
   // palestra è piccolo, non serve una seconda query per i totali.
@@ -28,7 +35,9 @@ export async function list(req: Request, res: Response): Promise<void> {
   res.json({
     success: true,
     items,
+    deletions,
     summary: {
+      deletions: deletions.length,
       subscriptions: { expired: conta('subscription', true), expiring: conta('subscription', false) },
       workouts: { expired: conta('workout', true), expiring: conta('workout', false) },
     },

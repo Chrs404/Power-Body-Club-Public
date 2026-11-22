@@ -1,16 +1,15 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, computed, inject, signal, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
 import {
-  IonContent, IonHeader, IonTitle, IonToolbar, IonButtons,
-  IonButton, IonSearchbar, IonList, IonItem, IonLabel, IonSpinner, IonIcon,
-  IonFab, IonFabButton, IonModal, IonInput, IonTextarea, IonSelect,
-  IonSelectOption, IonBadge, IonAccordion, IonAccordionGroup,
+  IonContent, IonHeader, IonToolbar, IonSpinner, IonIcon, IonModal, IonFooter,
   AlertController, ToastController,
   IonRefresher, IonRefresherContent,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import { add, createOutline, trashOutline, videocamOutline, barbellOutline } from 'ionicons/icons';
+import {
+  add, createOutline, trashOutline, videocamOutline, barbellOutline, closeOutline, searchOutline,
+} from 'ionicons/icons';
 
 import { ExerciseService } from '../../../core/services/exercise.service';
 import {
@@ -22,10 +21,7 @@ import { MuscleGroupPipe } from '../../../shared/pipes/muscle-group.pipe';
   selector: 'app-exercise-list',
   imports: [
     ReactiveFormsModule, FormsModule, MuscleGroupPipe,
-    IonContent, IonHeader, IonTitle, IonToolbar, IonButtons,
-    IonButton, IonSearchbar, IonList, IonItem, IonLabel, IonSpinner, IonIcon,
-    IonFab, IonFabButton, IonModal, IonInput, IonTextarea, IonSelect,
-    IonSelectOption, IonBadge, IonAccordion, IonAccordionGroup,
+    IonContent, IonHeader, IonToolbar, IonSpinner, IonIcon, IonModal, IonFooter,
     IonRefresher, IonRefresherContent,
   ],
   templateUrl: './exercise-list.page.html',
@@ -65,7 +61,7 @@ export class ExerciseListPage implements OnInit {
   });
 
   constructor() {
-    addIcons({ add, createOutline, trashOutline, videocamOutline, barbellOutline });
+    addIcons({ add, createOutline, trashOutline, videocamOutline, barbellOutline, closeOutline, searchOutline });
   }
 
   /** Trascinamento verso il basso per aggiornare i dati. */
@@ -80,6 +76,19 @@ export class ExerciseListPage implements OnInit {
 
   /** Raggruppa per gruppo muscolare, preservando l'ordine del server. */
   readonly grouped = signal<{ group: MuscleGroup; items: Exercise[] }[]>([]);
+
+  /** Filtro per gruppo muscolare con i chip; null = tutti i gruppi. */
+  readonly filtroGruppo = signal<MuscleGroup | null>(null);
+
+  /** Sezioni da mostrare: tutte, o solo quella del gruppo scelto. */
+  readonly sezioni = computed(() => {
+    const gruppo = this.filtroGruppo();
+    return gruppo ? this.grouped().filter((b) => b.group === gruppo) : this.grouped();
+  });
+
+  scegliGruppo(gruppo: MuscleGroup | null): void {
+    this.filtroGruppo.set(this.filtroGruppo() === gruppo ? null : gruppo);
+  }
 
   private regroup(items: Exercise[]): void {
     const map = new Map<MuscleGroup, Exercise[]>();

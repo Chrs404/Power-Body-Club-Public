@@ -1,8 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
 import {
-  IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonLabel,
-  IonSpinner, IonIcon, IonNote, IonButton, IonFab, IonFabButton,
+  IonContent, IonHeader, IonToolbar, IonSpinner, IonIcon,
   AlertController, ToastController,
   IonRefresher, IonRefresherContent,
 } from '@ionic/angular/standalone';
@@ -24,8 +23,7 @@ import { WorkoutTemplate } from '../../../core/models/workout.model';
 @Component({
   selector: 'app-template-list',
   imports: [
-    IonContent, IonHeader, IonTitle, IonToolbar, IonList, IonItem, IonLabel,
-    IonSpinner, IonIcon, IonNote, IonButton, IonFab, IonFabButton,
+    IonContent, IonHeader, IonToolbar, IonSpinner, IonIcon,
     IonRefresher, IonRefresherContent,
   ],
   templateUrl: './template-list.page.html',

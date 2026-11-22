@@ -1,17 +1,17 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, DestroyRef, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DatePipe } from '@angular/common';
+import { ActivatedRoute } from '@angular/router';
 import {
   IonContent, IonHeader, IonTitle, IonToolbar, IonSpinner, IonIcon,
-  IonSegment, IonSegmentButton, IonLabel, IonList, IonItem, IonNote,
-  IonButton, IonRefresher, IonRefresherContent, IonAccordion,
-  IonAccordionGroup, IonChip, IonCheckbox, IonModal, IonButtons,
-  IonInput, IonProgressBar, AlertController, ToastController,
+  IonList, IonItem, IonButton, IonRefresher, IonRefresherContent,
+  IonModal, IonButtons, IonInput, AlertController, ToastController,
 } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { addIcons } from 'ionicons';
 import {
   barbellOutline, videocamOutline, timerOutline, refreshOutline,
-  checkmarkCircle, ellipseOutline, trendingUpOutline, downloadOutline,
+  checkmarkCircle, checkmark, trendingUpOutline, downloadOutline, chevronDownOutline,
 } from 'ionicons/icons';
 
 import { WorkoutService } from '../../../core/services/workout.service';
@@ -30,10 +30,8 @@ import { RestTimerComponent } from '../../../shared/components/rest-timer/rest-t
   imports: [
     DatePipe, FormsModule, MuscleGroupPipe, RestTimerComponent,
     IonContent, IonHeader, IonTitle, IonToolbar, IonSpinner, IonIcon,
-    IonSegment, IonSegmentButton, IonLabel, IonList, IonItem, IonNote,
-    IonButton, IonRefresher, IonRefresherContent, IonAccordion,
-    IonAccordionGroup, IonChip, IonCheckbox, IonModal, IonButtons,
-    IonInput, IonProgressBar,
+    IonList, IonItem, IonButton, IonRefresher, IonRefresherContent,
+    IonModal, IonButtons, IonInput,
   ],
   templateUrl: './workout.page.html',
   styleUrl: './workout.page.css',
@@ -43,6 +41,8 @@ export class ClientWorkoutPage implements OnInit, OnDestroy {
   private readonly trainingService = inject(TrainingService);
   private readonly alertController = inject(AlertController);
   private readonly toastController = inject(ToastController);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly workout = signal<Workout | null>(null);
   readonly loading = signal(true);
@@ -53,6 +53,21 @@ export class ClientWorkoutPage implements OnInit, OnDestroy {
   readonly completedIds = signal<Set<number>>(new Set());
   readonly latestWeights = signal<Map<number, LatestWeight>>(new Map());
   readonly busyExerciseId = signal<number | null>(null);
+
+  /** Blocchi aperti per mostrare descrizione, note e pulsanti (per id del capogruppo). */
+  readonly aperti = signal<Set<number>>(new Set());
+
+  /**
+   * Pesi delle piramidali scritti oggi, serie per serie, per chiave
+   * "esercizio:serie". Ogni campo si salva da solo appena lo si lascia.
+   */
+  readonly pesiSerie = signal<Map<string, string>>(new Map());
+  /** Serie salvate con successo in questa visita, per il segno di conferma. */
+  readonly serieSalvate = signal<Set<string>>(new Set());
+  readonly serieInSalvataggio = signal<Set<string>>(new Set());
+
+  /** Giorno da aprire chiesto dalla Home con ?giorno=; vince sul calcolo del server. */
+  private giornoRichiesto: number | null = null;
 
   /**
    * Momento di festeggiamento a giorno completato.
@@ -80,24 +95,44 @@ export class ClientWorkoutPage implements OnInit, OnDestroy {
   constructor() {
     addIcons({
       barbellOutline, videocamOutline, timerOutline, refreshOutline,
-      checkmarkCircle, ellipseOutline, trendingUpOutline, downloadOutline,
+      checkmarkCircle, checkmark, trendingUpOutline, downloadOutline, chevronDownOutline,
     });
   }
 
   ngOnInit(): void {
+    // Le pagine a schede restano vive: "Inizia allenamento" dalla Home
+    // puo' arrivare con la pagina gia' aperta, quindi si ascolta il
+    // parametro invece di leggerlo una volta sola.
+    this.route.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((parametri) => {
+        const valore = parametri.get('giorno');
+        if (valore === null) return;
+        const indice = Number(valore);
+        if (!Number.isInteger(indice) || indice < 0) return;
+
+        this.giornoRichiesto = indice;
+        const w = this.workout();
+        if (w && indice < w.days.length) this.selectedDayIndex.set(indice);
+      });
+
     void this.load();
   }
 
   async load(): Promise<void> {
     this.errorMessage.set(null);
     try {
-      const workout = await this.workoutService.getMyActive();
+      const { workout, nextDayIndex } = await this.workoutService.getMyActive();
       this.workout.set(workout);
 
-      // Se la scheda ha piu' giorni, propone quello corrispondente
-      // al giorno della settimana quando il nome lo suggerisce.
+      // Il giorno da aprire: quello chiesto dalla Home, altrimenti il
+      // "prossimo allenamento" calcolato dal server (quello iniziato e
+      // non finito, o il successivo all'ultimo concluso).
       if (workout) {
-        this.selectedDayIndex.set(this.guessTodayIndex(workout.days));
+        const richiesto = this.giornoRichiesto;
+        const indice =
+          richiesto !== null && richiesto < workout.days.length ? richiesto : nextDayIndex;
+        this.selectedDayIndex.set(Math.min(Math.max(indice, 0), workout.days.length - 1));
         await this.loadSessionAndWeights();
       }
     } catch (error: unknown) {
@@ -115,7 +150,7 @@ export class ClientWorkoutPage implements OnInit, OnDestroy {
         this.trainingService.latestWeights(),
       ]);
       this.applySession(session);
-      this.latestWeights.set(new Map(weights.map((w) => [w.exerciseId, w])));
+      this.applicaPesi(weights);
     } catch {
       // Sessione o pesi non disponibili: la scheda resta comunque leggibile.
     }
@@ -126,22 +161,6 @@ export class ClientWorkoutPage implements OnInit, OnDestroy {
     this.completedIds.set(new Set(session.completed.map((c) => c.workoutExerciseId)));
   }
 
-  /**
-   * Se un giorno si chiama come il giorno corrente ("Lunedì", "lun"),
-   * viene selezionato automaticamente. Altrimenti si parte dal primo.
-   */
-  private guessTodayIndex(days: WorkoutDay[]): number {
-    const names = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
-    const today = names[new Date().getDay()];
-    const short = today.slice(0, 3);
-
-    const index = days.findIndex((d) => {
-      const label = d.label.toLowerCase().trim();
-      return label === today || label.startsWith(short);
-    });
-
-    return index >= 0 ? index : 0;
-  }
 
   async refresh(event: Event): Promise<void> {
     await this.load();
@@ -158,19 +177,161 @@ export class ClientWorkoutPage implements OnInit, OnDestroy {
     return w.days[this.selectedDayIndex()] ?? w.days[0];
   }
 
-  formatWeight(value: string | number | null): string | null {
-    if (value === null || value === '') return null;
+  formatWeight(value: string | number | null | undefined): string | null {
+    if (value === null || value === undefined || value === '') return null;
     const n = Number(value);
     if (Number.isNaN(n)) return null;
-    // 60.00 -> "60", 62.50 -> "62.5"
-    return `${parseFloat(n.toFixed(2))} kg`;
+    // 60.00 -> "60 kg", 62.50 -> "62,5 kg"
+    return `${this.numero(n)} kg`;
+  }
+
+  /** Numero all'italiana, senza decimali inutili: 62.5 -> "62,5". */
+  numero(n: number): string {
+    return parseFloat(n.toFixed(2)).toLocaleString('it-IT');
+  }
+
+  // ------------------------------------------------------- blocchi aperti
+
+  aperto(blocco: WorkoutBlock): boolean {
+    return this.aperti().has(blocco.capogruppo.id);
+  }
+
+  apriChiudi(blocco: WorkoutBlock): void {
+    const aperti = new Set(this.aperti());
+    const id = blocco.capogruppo.id;
+    if (aperti.has(id)) {
+      aperti.delete(id);
+    } else {
+      aperti.add(id);
+    }
+    this.aperti.set(aperti);
+  }
+
+  // ----------------------------------------------------------- piramidali
+
+  piramidale(ex: WorkoutExercise): boolean {
+    return ex.kind === 'PYRAMID' && (ex.pyramidSets?.length ?? 0) > 0;
+  }
+
+  /** Riga descrittiva sotto il nome dell'esercizio. */
+  parametri(ex: WorkoutExercise, superset: boolean): string {
+    if (this.piramidale(ex)) {
+      const serie = ex.pyramidSets!.length;
+      return `${serie} serie · ${ex.reps} · recupero ${this.formatRest(ex.restSeconds)}`;
+    }
+    const parti = [superset ? `${ex.reps} ripetizioni` : `${ex.sets} × ${ex.reps}`];
+    const peso = this.formatWeight(ex.suggestedWeight);
+    if (peso) parti.push(peso);
+    return parti.join(' · ');
+  }
+
+  private chiaveSerie(exerciseId: number, serie: number): string {
+    return `${exerciseId}:${serie}`;
+  }
+
+  valoreSerie(ex: WorkoutExercise, serie: number): string {
+    return this.pesiSerie().get(this.chiaveSerie(ex.exerciseId, serie)) ?? '';
+  }
+
+  /**
+   * Suggerimento nel campo vuoto: il peso della volta scorsa, o quello
+   * consigliato. Se oggi la piramidale e' gia' iniziata, "l'ultima
+   * registrazione" e' quella di oggi, incompleta: per le serie non ancora
+   * scritte si guarda quella prima.
+   */
+  segnapostoSerie(ex: WorkoutExercise, serie: number): string {
+    const info = this.latestWeights().get(ex.exerciseId);
+    const oggi = info?.performedAt.slice(0, 10) === new Date().toISOString().slice(0, 10);
+    const riferimento = oggi ? info?.previousSets : info?.lastSets;
+    const ultima = riferimento?.find((s) => s.setNumber === serie);
+    if (ultima) return this.numero(ultima.weight);
+    const consigliato = ex.pyramidSets?.[serie - 1]?.suggestedWeight;
+    return consigliato !== null && consigliato !== undefined && consigliato !== ''
+      ? this.numero(Number(consigliato))
+      : '—';
+  }
+
+  statoSerie(ex: WorkoutExercise, serie: number): 'salvataggio' | 'salvata' | null {
+    const chiave = this.chiaveSerie(ex.exerciseId, serie);
+    if (this.serieInSalvataggio().has(chiave)) return 'salvataggio';
+    if (this.serieSalvate().has(chiave)) return 'salvata';
+    return null;
+  }
+
+  /**
+   * Salva il peso di una serie appena si lascia il campo. Riscrivere la
+   * stessa serie nello stesso giorno sostituisce il valore precedente.
+   */
+  async salvaSerie(ex: WorkoutExercise, serie: number, testo: string): Promise<void> {
+    const chiave = this.chiaveSerie(ex.exerciseId, serie);
+    const pulito = testo.trim().replace(',', '.');
+    const valori = new Map(this.pesiSerie());
+    valori.set(chiave, testo.trim());
+    this.pesiSerie.set(valori);
+
+    if (pulito === '') return;
+    const peso = Number(pulito);
+    if (Number.isNaN(peso) || peso < 0 || peso > 999) {
+      await this.showToast('Peso non valido.', 'warning');
+      return;
+    }
+
+    this.cambiaInsieme(this.serieInSalvataggio, chiave, true);
+    try {
+      await this.trainingService.logWeight({ exerciseId: ex.exerciseId, weight: peso, setNumber: serie });
+      this.cambiaInsieme(this.serieSalvate, chiave, true);
+      this.applicaPesi(await this.trainingService.latestWeights());
+    } catch (error: unknown) {
+      this.cambiaInsieme(this.serieSalvate, chiave, false);
+      const err = error as { error?: { message?: string } };
+      await this.showToast(err?.error?.message ?? 'Salvataggio non riuscito.', 'danger');
+    } finally {
+      this.cambiaInsieme(this.serieInSalvataggio, chiave, false);
+    }
+  }
+
+  private cambiaInsieme(insieme: typeof this.serieSalvate, chiave: string, presente: boolean): void {
+    const nuovo = new Set(insieme());
+    if (presente) {
+      nuovo.add(chiave);
+    } else {
+      nuovo.delete(chiave);
+    }
+    insieme.set(nuovo);
+  }
+
+  /**
+   * Aggiorna gli ultimi pesi e, per le piramidali registrate oggi,
+   * riporta nei campi i valori gia' salvati: riaprendo l'app a meta'
+   * allenamento non si riparte da campi vuoti.
+   */
+  private applicaPesi(pesi: LatestWeight[]): void {
+    this.latestWeights.set(new Map(pesi.map((w) => [w.exerciseId, w])));
+
+    const oggi = new Date().toISOString().slice(0, 10);
+    const valori = new Map(this.pesiSerie());
+    for (const w of pesi) {
+      if (!w.lastSets?.length || w.performedAt.slice(0, 10) !== oggi) continue;
+      for (const s of w.lastSets) {
+        const chiave = this.chiaveSerie(w.exerciseId, s.setNumber);
+        if (!valori.get(chiave)) valori.set(chiave, this.numero(s.weight));
+      }
+    }
+    this.pesiSerie.set(valori);
   }
 
   formatRest(seconds: number): string {
-    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 60) return `${seconds} s`;
     const minutes = Math.floor(seconds / 60);
     const rest = seconds % 60;
-    return rest === 0 ? `${minutes}min` : `${minutes}min ${rest}s`;
+    return rest === 0 ? `${minutes} min` : `${minutes} min ${rest} s`;
+  }
+
+  /** "Petto, tricipiti": i gruppi muscolari del giorno mostrato. */
+  get gruppiDelGiorno(): MuscleGroup[] {
+    const day = this.currentDay;
+    if (!day) return [];
+    return [...new Set(day.exercises.map((e) => e.exercise.muscleGroup))];
   }
 
   isCompleted(workoutExerciseId: number): boolean {
@@ -269,8 +430,7 @@ export class ClientWorkoutPage implements OnInit, OnDestroy {
 
         if (esito.giornoCompletato) {
           this.avviaCelebrazione(esito.session);
-          const pesi = await this.trainingService.latestWeights();
-          this.latestWeights.set(new Map(pesi.map((w) => [w.exerciseId, w])));
+          this.applicaPesi(await this.trainingService.latestWeights());
         }
       }
     } catch {
@@ -379,8 +539,7 @@ export class ClientWorkoutPage implements OnInit, OnDestroy {
         notes: this.weightNotes.trim() || undefined,
       });
       this.weightModalOpen.set(false);
-      const weights = await this.trainingService.latestWeights();
-      this.latestWeights.set(new Map(weights.map((w) => [w.exerciseId, w])));
+      this.applicaPesi(await this.trainingService.latestWeights());
       await this.showToast('Peso registrato.', 'success');
     } catch (error: unknown) {
       const err = error as { error?: { message?: string } };
@@ -394,7 +553,7 @@ export class ClientWorkoutPage implements OnInit, OnDestroy {
 
   formatDelta(delta: number | null): string | null {
     if (delta === null || delta === 0) return null;
-    return delta > 0 ? `+${delta}` : String(delta);
+    return delta > 0 ? `+${this.numero(delta)}` : `−${this.numero(-delta)}`;
   }
 
   private async showToast(message: string, color: string): Promise<void> {

@@ -1,0 +1,83 @@
+@if (timer.attivo()) {
+  @if (!timer.schermoIntero()) {
+    <div class="barra" [class.finito]="timer.finito()" [class.in-arrivo]="timer.inArrivo()"
+      role="timer" aria-live="off">
+      <div class="traccia" aria-hidden="true">
+        <div class="riempimento" [style.width]="larghezzaBarra()"></div>
+      </div>
+      <div class="riga">
+        <button type="button" class="testo" (click)="timer.espandi()"
+          aria-label="Timer a schermo intero">
+          @if (timer.finito()) {
+            <span class="tempo">Fatto</span>
+            <span class="etichetta">Recupero terminato</span>
+          } @else {
+            <span class="tempo">{{ timer.testo() }}</span>
+            <span class="etichetta">{{ timer.etichetta() || 'Recupero' }}</span>
+          }
+        </button>
+        <button type="button" class="passo" (click)="timer.modifica(-passo)"
+          [attr.aria-label]="'Togli ' + passo + ' secondi'">−{{ passo }}</button>
+        <button type="button" class="passo" (click)="timer.modifica(passo)"
+          [attr.aria-label]="'Aggiungi ' + passo + ' secondi'">+{{ passo }}</button>
+        <button type="button" class="icona" (click)="timer.espandi()"
+          aria-label="Timer a schermo intero">
+          <ion-icon name="expand-outline" aria-hidden="true"></ion-icon>
+        </button>
+        <button type="button" class="icona" (click)="timer.chiudi()" aria-label="Chiudi il timer">
+          <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+        </button>
+      </div>
+    </div>
+  } @else {
+    <div class="pieno" [class.finito]="timer.finito()" role="dialog" aria-modal="true"
+      aria-label="Timer di recupero">
+      <div class="pieno-alto">
+        <button type="button" class="riduci" (click)="timer.riduci()">
+          <ion-icon name="chevron-down-outline" aria-hidden="true"></ion-icon>
+          <span>Riduci</span>
+        </button>
+        <button type="button" class="icona grande" (click)="timer.chiudi()" aria-label="Chiudi il timer">
+          <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+        </button>
+      </div>
+
+      <div class="pieno-centro">
+        <div class="titolo">
+          <span class="occhiello">{{ timer.finito() ? 'Recupero terminato' : 'Recupero in corso' }}</span>
+          @if (timer.etichetta()) {
+            <span class="nome">{{ timer.etichetta() }}</span>
+          }
+        </div>
+
+        <div class="anello" [class.in-arrivo]="timer.inArrivo()" [style.background]="anello()"
+          role="timer" [attr.aria-label]="timer.finito() ? 'Recupero terminato' : timer.testo() + ' rimanenti'">
+          <div class="anello-interno">
+            @if (timer.finito()) {
+              <ion-icon name="checkmark-circle" class="fatto" aria-hidden="true"></ion-icon>
+            } @else {
+              <span class="cifre">{{ timer.testo() }}</span>
+            }
+          </div>
+        </div>
+
+        <div class="passi">
+          <button type="button" class="passo-grande" (click)="timer.modifica(-passo)"
+            [attr.aria-label]="'Togli ' + passo + ' secondi'">− {{ passo }} s</button>
+          <button type="button" class="passo-grande" (click)="timer.modifica(passo)"
+            [attr.aria-label]="'Aggiungi ' + passo + ' secondi'">+ {{ passo }} s</button>
+        </div>
+
+        <div class="secondari">
+          <button type="button" class="secondario" (click)="timer.riavvia()">
+            <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon>
+            <span>Riavvia</span>
+          </button>
+          <button type="button" class="secondario" (click)="timer.chiudi()">
+            {{ timer.finito() ? 'Chiudi' : 'Salta il recupero' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+}

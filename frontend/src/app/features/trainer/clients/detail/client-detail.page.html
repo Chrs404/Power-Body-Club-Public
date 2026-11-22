@@ -1,174 +1,254 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-back-button defaultHref="/istruttore/clienti"></ion-back-button>
-    </ion-buttons>
-    <ion-title>Scheda cliente</ion-title>
-  </ion-toolbar>
-</ion-header>
+@if (!incorporato) {
+  <ion-header class="ion-no-border">
+    <ion-toolbar>
+      <ion-buttons slot="start">
+        <ion-back-button defaultHref="/istruttore/clienti"></ion-back-button>
+      </ion-buttons>
+      <ion-title>Cliente</ion-title>
+    </ion-toolbar>
+  </ion-header>
 
-<ion-content class="ion-padding">
-  <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
-    <ion-refresher-content></ion-refresher-content>
-  </ion-refresher>
+  <ion-content>
+    <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
+      <ion-refresher-content></ion-refresher-content>
+    </ion-refresher>
+    <div class="pagina">
+      <ng-container *ngTemplateOutlet="corpo"></ng-container>
+    </div>
+  </ion-content>
+} @else {
+  <div class="pagina incorporata">
+    <ng-container *ngTemplateOutlet="corpo"></ng-container>
+  </div>
+}
 
-  @if (loading()) {
+<ng-template #corpo>
+  @if (loading() && !client()) {
     <div class="d-flex justify-content-center py-5">
       <ion-spinner name="crescent"></ion-spinner>
     </div>
   } @else if (errorMessage()) {
     <div class="alert alert-danger">{{ errorMessage() }}</div>
   } @else if (client(); as c) {
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-12 col-md-8 col-lg-6">
-
-          <div class="client-head mb-3">
-            <h2 class="mb-1">{{ c.firstName }} {{ c.lastName }}</h2>
-            <div class="d-flex align-items-center gap-2 flex-wrap">
-              <ion-note>{{ c.username }}</ion-note>
-              @if (!c.isActive) {
-                <ion-badge color="medium">Disattivo</ion-badge>
-              }
-              @if (c.mustChangePassword) {
-                <ion-badge color="tertiary">Primo accesso in sospeso</ion-badge>
-              }
-            </div>
-            <ion-note [color]="c.subscription | subscriptionColor" class="d-block mt-2">
-              {{ c.subscription | subscriptionStatus }}
-            </ion-note>
-          </div>
-
-          @if (newCredentials(); as nc) {
-            <div class="alert alert-success">
-              <strong>Nuove credenziali</strong>
-              <div class="mt-2 font-monospace">
-                <div>Username: {{ nc.username }}</div>
-                <div>Password: {{ nc.temporaryPassword }}</div>
-              </div>
-              <div class="small mt-2">
-                Comunicale al cliente: non saranno più visibili.
-              </div>
-            </div>
+    <!-- Intestazione -->
+    <div class="testa">
+      <div class="avatar" aria-hidden="true">{{ (c.firstName || c.username)[0] }}</div>
+      <div class="testa-testo">
+        <h2 class="nome">{{ c.firstName }} {{ c.lastName }}</h2>
+        <div class="etichette">
+          <span class="pbc-small">{{ c.username }}</span>
+          @if (!c.isActive) {
+            <span class="pbc-pill">Disattivato</span>
           }
-
-          <form [formGroup]="form" (ngSubmit)="save()">
-            <ion-list>
-              <ion-list-header><ion-label>Dati anagrafici</ion-label></ion-list-header>
-
-              <ion-item>
-                <ion-input label="Nome" labelPlacement="floating"
-                  formControlName="firstName"></ion-input>
-              </ion-item>
-              <ion-item>
-                <ion-input label="Cognome" labelPlacement="floating"
-                  formControlName="lastName"></ion-input>
-              </ion-item>
-              <ion-item>
-                <ion-input label="Email" labelPlacement="floating" type="email"
-                  formControlName="email" autocapitalize="off"></ion-input>
-              </ion-item>
-              <ion-item>
-                <ion-input label="Telefono" labelPlacement="floating" type="tel"
-                  formControlName="phone"></ion-input>
-              </ion-item>
-              <ion-item>
-                <ion-input label="Data di nascita" labelPlacement="stacked" type="date"
-                  formControlName="birthDate"></ion-input>
-              </ion-item>
-              <ion-item>
-                <ion-textarea label="Note interne" labelPlacement="floating"
-                  formControlName="notes" [autoGrow]="true" rows="2"></ion-textarea>
-              </ion-item>
-              <ion-item>
-                <ion-toggle formControlName="isActive">Account attivo</ion-toggle>
-              </ion-item>
-            </ion-list>
-
-            <ion-button expand="block" type="submit" class="mt-3" [disabled]="saving()">
-              @if (saving()) {
-                <ion-spinner name="crescent"></ion-spinner>
-              } @else {
-                Salva modifiche
-              }
-            </ion-button>
-          </form>
-
-          <ion-accordion-group class="mt-4">
-            <ion-accordion value="subscriptions">
-              <ion-item slot="header">
-                <ion-label>Storico abbonamenti ({{ c.subscriptions.length }})</ion-label>
-              </ion-item>
-              <div slot="content">
-                @if (c.subscriptions.length === 0) {
-                  <p class="text-muted px-3 py-2 mb-0 small">
-                    Nessun abbonamento registrato.
-                  </p>
-                } @else {
-                  <ion-list>
-                    @for (s of c.subscriptions; track s.id) {
-                      <ion-item>
-                        <ion-label>
-                          <h3>{{ s.plan || 'Abbonamento' }}</h3>
-                          <p>
-                            {{ s.startDate | date: 'dd/MM/yyyy' }} —
-                            {{ s.endDate | date: 'dd/MM/yyyy' }}
-                          </p>
-                        </ion-label>
-                        <ion-button
-                          slot="end"
-                          fill="clear"
-                          color="danger"
-                          (click)="confirmDeleteSubscription(s)"
-                        >
-                          <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-                        </ion-button>
-                      </ion-item>
-                    }
-                  </ion-list>
-                }
-              </div>
-            </ion-accordion>
-          </ion-accordion-group>
-
-          <ion-button expand="block" class="mt-4" [routerLink]="['/istruttore/clienti', c.id, 'schede']">
-            <ion-icon name="document-text-outline" slot="start"></ion-icon>
-            Schede di allenamento
-          </ion-button>
-
-          <ion-button expand="block" fill="outline" class="mt-3"
-            (click)="openSubscriptionModal()">
-            <ion-icon name="add-circle-outline" slot="start"></ion-icon>
-            Registra abbonamento
-          </ion-button>
-
-          <ion-button expand="block" fill="outline" color="warning" class="mt-2"
-            (click)="confirmResetPassword()">
-            <ion-icon name="key-outline" slot="start"></ion-icon>
-            Reimposta password
-          </ion-button>
-
-          <div class="zona-pericolo mt-4 mb-4">
-            <p class="zona-titolo">Eliminazione definitiva</p>
-            <p class="zona-testo">
-              Rimuove il cliente e tutti i suoi dati, senza possibilità di
-              recupero. Per impedire solo l'accesso, disattiva l'account
-              con l'interruttore qui sopra.
-            </p>
-            <ion-button expand="block" fill="outline" color="danger"
-              (click)="confermaEliminazione()">
-              <ion-icon name="person-remove-outline" slot="start"></ion-icon>
-              Elimina cliente
-            </ion-button>
-          </div>
-
+          @if (c.mustChangePassword) {
+            <span class="pbc-pill ochre">Primo accesso in sospeso</span>
+          }
         </div>
       </div>
     </div>
+
+    <!-- Eliminazione automatica -->
+    @if (eliminazione(); as e) {
+      <div class="eliminazione" role="status">
+        <div>
+          <div class="eliminazione-titolo">Verrà eliminato {{ quandoEliminazione(e.daysLeft) }}</div>
+          <div class="pbc-small">
+            Abbonamento e scheda sono scaduti. Rimanda se il cliente sta per rinnovare.
+          </div>
+        </div>
+        <button type="button" class="pbc-btn outline small" (click)="rimandaEliminazione()"
+          [disabled]="operazione()">
+          <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+          Rimanda di 15 giorni
+        </button>
+      </div>
+    }
+
+    @if (newCredentials(); as nc) {
+      <div class="alert alert-success mb-0">
+        <strong>Nuove credenziali</strong>
+        <div class="mt-2 font-monospace">
+          <div>Username: {{ nc.username }}</div>
+          <div>Password: {{ nc.temporaryPassword }}</div>
+        </div>
+        <div class="small mt-2">Comunicale al cliente: non saranno più visibili.</div>
+      </div>
+    }
+
+    <div class="blocchi">
+      <!-- Abbonamento -->
+      <section class="pbc-card blocco" aria-label="Abbonamento">
+        @let giorniAbb = c.subscription?.daysLeft ?? null;
+        <div class="blocco-testa">
+          <div class="blocco-testo">
+            <span class="pbc-eyebrow">Abbonamento</span>
+            @if (c.subscription; as s) {
+              <span class="valore">{{ s.plan || 'Abbonamento' }}</span>
+              <span class="pbc-muted">dal {{ s.startDate | date: 'dd/MM/yyyy' }} al {{ s.endDate | date: 'dd/MM/yyyy' }}</span>
+            } @else {
+              <span class="valore">Nessuno</span>
+              <span class="pbc-muted">Nessun abbonamento registrato.</span>
+            }
+          </div>
+          @if (c.subscription) {
+            <span class="pbc-pill" [class]="tono(giorniAbb)">{{ scadenza(giorniAbb) }}</span>
+          }
+        </div>
+        <div class="blocco-azioni">
+          <button type="button" class="pbc-btn primary small" (click)="openSubscriptionModal()">
+            {{ c.subscription ? 'Rinnova' : 'Registra abbonamento' }}
+          </button>
+          @if (c.subscriptions.length > 0) {
+            <button type="button" class="pbc-btn ghost small" (click)="storicoAperto.set(!storicoAperto())"
+              [attr.aria-expanded]="storicoAperto()">
+              Storico ({{ c.subscriptions.length }})
+              <ion-icon [name]="storicoAperto() ? 'chevron-up-outline' : 'chevron-down-outline'" aria-hidden="true"></ion-icon>
+            </button>
+          }
+        </div>
+        @if (storicoAperto()) {
+          <div class="storico">
+            @for (s of c.subscriptions; track s.id) {
+              <div class="storico-riga">
+                <div class="blocco-testo">
+                  <span class="fw-semibold">{{ s.plan || 'Abbonamento' }}</span>
+                  <span class="pbc-small">{{ s.startDate | date: 'dd/MM/yyyy' }} – {{ s.endDate | date: 'dd/MM/yyyy' }}</span>
+                </div>
+                <button type="button" class="pbc-icon-btn danger" (click)="confirmDeleteSubscription(s)"
+                  aria-label="Elimina questo abbonamento">
+                  <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+                </button>
+              </div>
+            }
+          </div>
+        }
+      </section>
+
+      <!-- Scheda attiva -->
+      <section class="pbc-card blocco" aria-label="Scheda attiva">
+        @let w = schedaAttiva();
+        @let giorniScheda = giorniA(w?.endDate ?? null);
+        <div class="blocco-testa">
+          <div class="blocco-testo">
+            <span class="pbc-eyebrow">Scheda attiva</span>
+            @if (w) {
+              <span class="valore">{{ w.name }}</span>
+              <span class="pbc-muted">
+                {{ w._count?.days }} {{ w._count?.days === 1 ? 'giorno' : 'giorni' }}
+                @if (w.endDate) {
+                  · fino al {{ w.endDate | date: 'dd/MM/yyyy' }}
+                }
+              </span>
+            } @else {
+              <span class="valore">Nessuna</span>
+              <span class="pbc-muted">Nessuna scheda assegnata.</span>
+            }
+          </div>
+          @if (w?.endDate) {
+            <span class="pbc-pill" [class]="tono(giorniScheda)">{{ scadenza(giorniScheda, true) }}</span>
+          }
+        </div>
+        <div class="blocco-azioni">
+          @if (w) {
+            <a class="pbc-btn primary small" [routerLink]="['/istruttore/schede', w.id, 'modifica']">Apri</a>
+          }
+          <a class="pbc-btn small" [routerLink]="['/istruttore/schede/nuova', c.id]">Nuova scheda</a>
+          @if (w) {
+            <button type="button" class="pbc-btn outline small" (click)="salvaComeRapida()">
+              <ion-icon name="bookmark-outline" aria-hidden="true"></ion-icon>
+              Salva come scheda rapida
+            </button>
+          }
+        </div>
+      </section>
+    </div>
+
+    <!-- Schede precedenti -->
+    @if (schedePrecedenti().length > 0) {
+      <section class="pbc-section" aria-label="Schede precedenti">
+        <div class="pbc-section-head">
+          <span class="pbc-eyebrow">Schede precedenti</span>
+          <a class="pbc-link" [routerLink]="['/istruttore/clienti', c.id, 'schede']">Tutte le schede</a>
+        </div>
+        <div class="pbc-card elenco">
+          @for (s of schedePrecedenti(); track s.id) {
+            <a class="precedente" [routerLink]="['/istruttore/clienti', c.id, 'schede']">
+              <span class="fw-semibold">{{ s.name }}</span>
+              <span class="pbc-small">
+                {{ s.startDate | date: 'dd/MM/yyyy' }}
+                @if (s.endDate) {
+                  – {{ s.endDate | date: 'dd/MM/yyyy' }}
+                }
+              </span>
+            </a>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Dati anagrafici -->
+    <section class="pbc-card blocco" aria-label="Dati del cliente">
+      <button type="button" class="apri-dati" (click)="datiAperti.set(!datiAperti())" [attr.aria-expanded]="datiAperti()">
+        <span class="pbc-eyebrow">Dati del cliente</span>
+        <ion-icon [name]="datiAperti() ? 'chevron-up-outline' : 'chevron-down-outline'" aria-hidden="true"></ion-icon>
+      </button>
+      @if (datiAperti()) {
+        <form [formGroup]="form" (ngSubmit)="save()">
+          <ion-list lines="full">
+            <ion-item>
+              <ion-input label="Nome" labelPlacement="floating" formControlName="firstName"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-input label="Cognome" labelPlacement="floating" formControlName="lastName"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-input label="Email" labelPlacement="floating" type="email"
+                formControlName="email" autocapitalize="off"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-input label="Telefono" labelPlacement="floating" type="tel" formControlName="phone"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-input label="Data di nascita" labelPlacement="stacked" type="date" formControlName="birthDate"></ion-input>
+            </ion-item>
+            <ion-item>
+              <ion-textarea label="Note interne" labelPlacement="floating"
+                formControlName="notes" [autoGrow]="true" rows="2"></ion-textarea>
+            </ion-item>
+            <ion-item>
+              <ion-toggle formControlName="isActive">Account attivo</ion-toggle>
+            </ion-item>
+          </ion-list>
+          <button type="submit" class="pbc-btn primary block mt-3" [disabled]="saving()">
+            {{ saving() ? 'Salvataggio…' : 'Salva modifiche' }}
+          </button>
+        </form>
+      }
+    </section>
+
+    <div class="azioni-secondarie">
+      <button type="button" class="pbc-btn outline small" (click)="confirmResetPassword()">
+        <ion-icon name="key-outline" aria-hidden="true"></ion-icon>
+        Reimposta password
+      </button>
+    </div>
+
+    <div class="zona-pericolo">
+      <p class="zona-titolo">Eliminazione definitiva</p>
+      <p class="zona-testo">
+        Rimuove il cliente e tutti i suoi dati, senza possibilità di recupero. Per impedire
+        solo l'accesso, disattiva l'account nei dati del cliente.
+      </p>
+      <button type="button" class="pbc-btn danger small" (click)="confermaEliminazione()">
+        <ion-icon name="person-remove-outline" aria-hidden="true"></ion-icon>
+        Elimina cliente
+      </button>
+    </div>
+  } @else {
+    <div class="pbc-vuoto">Cliente non più disponibile.</div>
   }
 
-  <ion-modal [isOpen]="subscriptionModalOpen()"
-    (didDismiss)="subscriptionModalOpen.set(false)">
+  <ion-modal [isOpen]="subscriptionModalOpen()" (didDismiss)="subscriptionModalOpen.set(false)">
     <ng-template>
       <ion-header>
         <ion-toolbar>
@@ -182,21 +262,18 @@
         <form [formGroup]="subscriptionForm" (ngSubmit)="saveSubscription()">
           <ion-list>
             <ion-item>
-              <ion-input label="Inizio" labelPlacement="stacked" type="date"
-                formControlName="startDate"></ion-input>
+              <ion-input label="Inizio" labelPlacement="stacked" type="date" formControlName="startDate"></ion-input>
             </ion-item>
             <ion-item>
-              <ion-input label="Scadenza" labelPlacement="stacked" type="date"
-                formControlName="endDate"></ion-input>
+              <ion-input label="Scadenza" labelPlacement="stacked" type="date" formControlName="endDate"></ion-input>
             </ion-item>
             <ion-item>
-              <ion-input label="Tipo (es. Annuale)" labelPlacement="floating"
-                formControlName="plan"></ion-input>
+              <ion-input label="Tipo (es. Mensile)" labelPlacement="floating" formControlName="plan"></ion-input>
             </ion-item>
           </ion-list>
-          <ion-button expand="block" type="submit" class="mt-3">Salva</ion-button>
+          <button type="submit" class="pbc-btn primary block mt-3">Salva</button>
         </form>
       </ion-content>
     </ng-template>
   </ion-modal>
-</ion-content>
+</ng-template>

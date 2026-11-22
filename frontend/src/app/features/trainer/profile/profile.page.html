@@ -1,20 +1,22 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
+    <!-- Il profilo non ha piu' una voce nel menu: si apre dalla Home. -->
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/istruttore/home"></ion-back-button>
+    </ion-buttons>
     <ion-title>Profilo</ion-title>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-12 col-md-8 col-lg-5">
+<ion-content>
+  <div class="pbc-page profilo">
 
-        <div class="profile-head mb-3">
+        <div class="pbc-card profile-head">
           <div class="avatar">
             {{ (user()?.firstName || user()?.username || '?')[0] | uppercase }}
           </div>
           <div>
-            <div class="fw-semibold">
+            <div class="profile-nome">
               {{ user()?.firstName }} {{ user()?.lastName }}
             </div>
             <ion-badge color="secondary">Istruttore</ion-badge>
@@ -97,7 +99,5 @@
           Esci
         </ion-button>
 
-      </div>
-    </div>
   </div>
 </ion-content>

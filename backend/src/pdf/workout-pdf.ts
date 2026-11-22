@@ -43,6 +43,10 @@ export interface EsercizioPdf {
   suggestedWeight: unknown;
   notes: string | null;
   linkedToPrevious: boolean;
+  /** 'PYRAMID' per le piramidali; assente o 'NORMAL' negli altri casi. */
+  kind?: string;
+  /** Serie di una piramidale, in ordine. Vuoto per gli esercizi normali. */
+  pyramidSets?: { reps: string; suggestedWeight: unknown }[];
   exercise: { id: number; name: string; muscleGroup: string };
 }
 
@@ -89,6 +93,20 @@ function peso(valore: unknown): string {
   const n = Number(valore);
   if (Number.isNaN(n) || n === 0) return '';
   return `${parseFloat(n.toFixed(2))} kg`;
+}
+
+/**
+ * Pesi di una piramidale, serie per serie: "24-26-28-30 kg".
+ * Se anche una sola serie non ha un peso indicato si lascia vuoto: un
+ * elenco con dei buchi non si capirebbe a quale serie si riferisce.
+ */
+function pesiPiramidale(serie: EsercizioPdf['pyramidSets']): string {
+  if (!serie || serie.length === 0) return '';
+
+  const valori = serie.map((s) => Number(s.suggestedWeight));
+  if (valori.some((n) => Number.isNaN(n) || n === 0)) return '';
+
+  return `${valori.map((n) => parseFloat(n.toFixed(2))).join('-')} kg`;
 }
 
 /** Gruppi muscolari presenti in un giorno, per l'intestazione della tabella. */
@@ -288,7 +306,27 @@ function tabellaGiorno(doc: PDFKit.PDFDocument, giorno: GiornoPdf): void {
 
     for (const [posizione, ex] of blocco.entries()) {
       const etichetta = superset ? `${sigla}${posizione + 1}  ` : '';
-      const testoSerie = `${ex.sets}x${ex.reps}`;
+      const piramidale = ex.kind === 'PYRAMID';
+
+      // Piramidale: le ripetizioni cambiano a ogni serie ("12-10-8-6"),
+      // quindi il "4x" davanti sarebbe fuorviante.
+      const testoSerie = piramidale ? ex.reps : `${ex.sets}x${ex.reps}`;
+
+      // Riga piccola sotto le serie: tipo, recupero e peso consigliato.
+      const dettagli: string[] = [];
+      if (piramidale) {
+        dettagli.push('piramidale');
+      }
+      // Nei superset il recupero e' del blocco, non del singolo esercizio:
+      // indicarlo su ogni riga sarebbe fuorviante.
+      if (!superset && ex.restSeconds > 0) {
+        dettagli.push(`rec. ${formattaRecupero(ex.restSeconds)}`);
+      }
+      const carico = piramidale ? pesiPiramidale(ex.pyramidSets) : peso(ex.suggestedWeight);
+      if (carico) {
+        dettagli.push(carico);
+      }
+      const testoDettagli = dettagli.join('  ·  ');
 
       /*
        * Altezza calcolata sul contenuto, non fissa.
@@ -302,6 +340,13 @@ function tabellaGiorno(doc: PDFKit.PDFDocument, giorno: GiornoPdf): void {
       doc.font('Helvetica-Bold').fontSize(9);
       const hSerie = doc.heightOfString(testoSerie, { width: COL_SERIE - 10 });
 
+      // I dettagli di una piramidale possono andare a capo: l'altezza
+      // della riga deve tenerne conto, come per le ripetizioni.
+      doc.font('Helvetica').fontSize(7);
+      const hDettagli = testoDettagli
+        ? doc.heightOfString(testoDettagli, { width: COL_SERIE - 10 })
+        : 0;
+
       doc.font('Helvetica').fontSize(9);
       const hNome = doc.heightOfString(etichetta + ex.exercise.name, {
         width: COL_ESERCIZIO - 14,
@@ -309,7 +354,7 @@ function tabellaGiorno(doc: PDFKit.PDFDocument, giorno: GiornoPdf): void {
 
       // 10 punti di respiro sopra e sotto; 24 resta il minimo, così le
       // righe brevi mantengono l'aspetto compatto di prima.
-      const altezza = Math.max(24, hSerie + 14, hNome + 14);
+      const altezza = Math.max(24, hSerie + 14, hSerie + hDettagli + 8, hNome + 14);
 
       if (doc.y + altezza + 2 > doc.page.height - 55) {
         doc.addPage();
@@ -343,25 +388,15 @@ function tabellaGiorno(doc: PDFKit.PDFDocument, giorno: GiornoPdf): void {
        * ogni esercizio: ripetitivo e uno spreco di spazio su un foglio
        * che deve stare in poche pagine.
        */
-      const carico = peso(ex.suggestedWeight);
       doc.fillColor(CARBONE).font('Helvetica-Bold').fontSize(9);
       doc.text(testoSerie, MARGINE + COL_ESERCIZIO + 8, yRiga + 5, {
         width: COL_SERIE - 10,
       });
 
-      const dettagli: string[] = [];
-      // Nei superset il recupero e' del blocco, non del singolo esercizio:
-      // indicarlo su ogni riga sarebbe fuorviante.
-      if (!superset && ex.restSeconds > 0) {
-        dettagli.push(`rec. ${formattaRecupero(ex.restSeconds)}`);
-      }
-      if (carico) {
-        dettagli.push(carico);
-      }
-      if (dettagli.length > 0) {
+      if (testoDettagli) {
         doc.fillColor(GRIGIO).font('Helvetica').fontSize(7);
         // Sotto il testo delle serie, che ora può occupare più righe
-        doc.text(dettagli.join('  ·  '), MARGINE + COL_ESERCIZIO + 8, yRiga + 5 + hSerie + 1, {
+        doc.text(testoDettagli, MARGINE + COL_ESERCIZIO + 8, yRiga + 5 + hSerie + 1, {
           width: COL_SERIE - 10,
         });
       }

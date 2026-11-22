@@ -32,6 +32,11 @@ const workoutInclude = {
               videoUrl: true,
             },
           },
+          // Serie delle piramidali; vuoto per gli esercizi normali.
+          pyramidSets: {
+            orderBy: { order: 'asc' as const },
+            select: { order: true, reps: true, suggestedWeight: true },
+          },
         },
       },
     },
@@ -49,19 +54,74 @@ function buildDaysCreateInput(days: CreateWorkoutInput['days']) {
       label: day.label.trim(),
       order: dayIndex,
       exercises: {
-        create: esercizi.map((exercise, exerciseIndex) => ({
-          exerciseId: exercise.exerciseId,
-          order: exerciseIndex,
-          sets: exercise.sets,
-          reps: exercise.reps.trim(),
-          restSeconds: exercise.restSeconds ?? 60,
-          suggestedWeight: exercise.suggestedWeight ?? null,
-          notes: emptyToNull(exercise.notes),
-          linkedToPrevious: exercise.linkedToPrevious === true,
-        })),
+        create: esercizi.map((exercise, exerciseIndex) => {
+          const comune = {
+            exerciseId: exercise.exerciseId,
+            order: exerciseIndex,
+            restSeconds: exercise.restSeconds ?? 60,
+            notes: emptyToNull(exercise.notes),
+            linkedToPrevious: exercise.linkedToPrevious === true,
+          };
+
+          if (exercise.kind === 'PYRAMID') {
+            const serie = exercise.pyramidSets ?? [];
+            return {
+              ...comune,
+              kind: 'PYRAMID' as const,
+              // Numero di serie e riepilogo ("12-10-8-6") ricavati dalle
+              // serie stesse: restano coerenti qualunque cosa invii il client.
+              sets: serie.length,
+              reps: serie.map((s) => s.reps.trim()).join('-'),
+              // Il peso e' serie per serie: quello unico non ha significato.
+              suggestedWeight: null,
+              pyramidSets: {
+                create: serie.map((s, indice) => ({
+                  order: indice,
+                  reps: s.reps.trim(),
+                  suggestedWeight: s.suggestedWeight ?? null,
+                })),
+              },
+            };
+          }
+
+          return {
+            ...comune,
+            kind: 'NORMAL' as const,
+            sets: exercise.sets,
+            reps: exercise.reps.trim(),
+            suggestedWeight: exercise.suggestedWeight ?? null,
+          };
+        }),
       },
     };
   });
+}
+
+/**
+ * Controlli sulle piramidali che lo schema da solo non esprime.
+ *
+ * - Servono almeno due serie: con una sola non c'e' nessuna piramide.
+ * - Una piramidale non puo' stare in un superset: nel superset serie e
+ *   recupero sono quelli del primo esercizio e valgono per tutto il
+ *   giro, mentre la piramidale ha serie tutte diverse fra loro.
+ */
+function assertPiramidaliValide(days: CreateWorkoutInput['days']): void {
+  for (const day of days) {
+    const esercizi = normalizzaCollegamenti(day.exercises);
+
+    esercizi.forEach((esercizio, indice) => {
+      if (esercizio.kind !== 'PYRAMID') return;
+
+      if ((esercizio.pyramidSets?.length ?? 0) < 2) {
+        throw badRequest('Un esercizio piramidale deve avere almeno 2 serie.');
+      }
+
+      const collegatoAlSuccessivo = esercizi[indice + 1]?.linkedToPrevious === true;
+      if (esercizio.linkedToPrevious === true || collegatoAlSuccessivo) {
+        throw badRequest('Un esercizio piramidale non può far parte di un superset.');
+      }
+    });
+  }
 }
 
 /** Verifica che tutti gli id esercizio esistano davvero nel catalogo. */
@@ -70,6 +130,8 @@ async function assertExercisesExist(days: CreateWorkoutInput['days']): Promise<v
   if (ids.length === 0) {
     throw badRequest('Aggiungi almeno un esercizio alla scheda.');
   }
+
+  assertPiramidaliValide(days);
 
   const found = await prisma.exercise.count({ where: { id: { in: ids } } });
   if (found !== ids.length) {
@@ -394,30 +456,7 @@ export async function duplicateWorkout(
   name?: string
 ) {
   const source = await getWorkoutById(sourceId);
-
-  type SourceExercise = {
-    exerciseId: number;
-    sets: number;
-    reps: string;
-    restSeconds: number;
-    suggestedWeight: unknown;
-    notes: string | null;
-    linkedToPrevious: boolean;
-  };
-  type SourceDay = { label: string; exercises: SourceExercise[] };
-
-  const days = (source.days as SourceDay[]).map((day) => ({
-    label: day.label,
-    exercises: day.exercises.map((we) => ({
-      exerciseId: we.exerciseId,
-      sets: we.sets,
-      reps: we.reps,
-      restSeconds: we.restSeconds,
-      suggestedWeight: we.suggestedWeight ? Number(we.suggestedWeight) : null,
-      notes: we.notes ?? undefined,
-      linkedToPrevious: we.linkedToPrevious,
-    })),
-  }));
+  const days = copiaGiorni(source.days);
 
   const today = new Date();
   const startDate = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, '0')}-${String(today.getUTCDate()).padStart(2, '0')}`;
@@ -555,18 +594,22 @@ type EsercizioSorgente = {
   suggestedWeight: unknown;
   notes: string | null;
   linkedToPrevious: boolean;
+  kind: 'NORMAL' | 'PYRAMID';
+  pyramidSets: { reps: string; suggestedWeight: unknown }[];
 };
 type GiornoSorgente = { label: string; exercises: EsercizioSorgente[] };
 
 /**
- * Converte i giorni di un modello nel formato accettato in creazione.
+ * Converte i giorni di una scheda o di un modello nel formato accettato
+ * in creazione.
  *
- * Serve sia all'assegnazione a un cliente sia alla duplicazione: sono
- * due copie della stessa struttura, e tenerne una sola versione evita
- * che un campo aggiunto in futuro (come e' stato linkedToPrevious per i
- * superset) venga ricordato in un punto e dimenticato nell'altro.
+ * Serve all'assegnazione a un cliente, alle duplicazioni e al salvataggio
+ * fra le schede rapide: sono copie della stessa struttura, e tenerne una
+ * sola versione evita che un campo aggiunto in futuro (come sono stati i
+ * superset e poi le piramidali) venga ricordato in un punto e dimenticato
+ * in un altro.
  */
-function copiaGiorniDaModello(days: unknown): CreateWorkoutInput['days'] {
+function copiaGiorni(days: unknown): CreateWorkoutInput['days'] {
   return (days as GiornoSorgente[]).map((day) => ({
     label: day.label,
     exercises: day.exercises.map((we) => ({
@@ -577,8 +620,48 @@ function copiaGiorniDaModello(days: unknown): CreateWorkoutInput['days'] {
       suggestedWeight: we.suggestedWeight ? Number(we.suggestedWeight) : null,
       notes: we.notes ?? undefined,
       linkedToPrevious: we.linkedToPrevious,
+      kind: we.kind,
+      pyramidSets: (we.pyramidSets ?? []).map((s) => ({
+        reps: s.reps,
+        suggestedWeight: s.suggestedWeight ? Number(s.suggestedWeight) : null,
+      })),
     })),
   }));
+}
+
+/**
+ * Salva una scheda di un cliente fra le schede rapide.
+ *
+ * La scheda viene copiata, non spostata: quella del cliente resta dov'e'
+ * e continua a funzionare. La copia perde cliente e date, che un modello
+ * non ha.
+ */
+export async function saveWorkoutAsTemplate(
+  workoutId: number,
+  createdById: number,
+  name?: string
+) {
+  const scheda = await getWorkoutById(workoutId);
+
+  if (scheda.isTemplate) {
+    throw badRequest('Questa è già una scheda rapida.');
+  }
+
+  return prisma.workout.create({
+    data: {
+      userId: createdById,
+      createdById,
+      name: name?.trim() || scheda.name,
+      isTemplate: true,
+      status: 'ARCHIVED',
+      // Data simbolica: un modello non ha un periodo di validita'.
+      startDate: new Date(),
+      endDate: null,
+      notes: scheda.notes,
+      days: { create: buildDaysCreateInput(copiaGiorni(scheda.days)) },
+    },
+    include: workoutInclude,
+  });
 }
 
 /**
@@ -601,7 +684,7 @@ export async function duplicateTemplate(id: number, createdById: number) {
       endDate: null,
       notes: originale.notes,
       days: {
-        create: buildDaysCreateInput(copiaGiorniDaModello(originale.days)),
+        create: buildDaysCreateInput(copiaGiorni(originale.days)),
       },
     },
     include: workoutInclude,
@@ -615,7 +698,7 @@ export async function assignTemplate(
   opzioni: { name?: string; startDate?: string; endDate?: string } = {}
 ) {
   const template = await getTemplateById(templateId);
-  const days = copiaGiorniDaModello(template.days);
+  const days = copiaGiorni(template.days);
 
   const oggi = new Date();
   const dataDefault = `${oggi.getUTCFullYear()}-${String(oggi.getUTCMonth() + 1).padStart(2, '0')}-${String(oggi.getUTCDate()).padStart(2, '0')}`;

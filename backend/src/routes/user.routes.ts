@@ -35,6 +35,9 @@ router.post(
 );
 router.delete('/:id/subscriptions/:subscriptionId', userController.deleteSubscription);
 
+// Eliminazione automatica: rimanda di 15 giorni.
+router.post('/:id/postpone-deletion', userController.postponeDeletion);
+
 // Anteprima di cosa verrebbe eliminato, mostrata nella conferma.
 router.get('/:id/deletion-preview', userController.deletionPreview);
 

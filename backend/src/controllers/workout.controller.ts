@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import * as workoutService from '../services/workout.service';
+import { prossimoGiorno } from '../services/dashboard.service';
 import { generaPdfScheda, SchedaPdf } from '../pdf/workout-pdf';
 import { badRequest, unauthorized, forbidden } from '../utils/app-error';
 import { listWorkoutsQuerySchema } from '../schemas/workout.schema';
@@ -89,6 +90,25 @@ export async function duplicate(req: Request, res: Response): Promise<void> {
   res.status(201).json({ success: true, message: 'Scheda duplicata.', workout });
 }
 
+/** Salva una scheda di un cliente fra le schede rapide. */
+export async function saveAsTemplate(req: Request, res: Response): Promise<void> {
+  if (!req.user) {
+    throw unauthorized('Autenticazione richiesta.');
+  }
+
+  const template = await workoutService.saveWorkoutAsTemplate(
+    parseId(req.params.id),
+    req.user.userId,
+    typeof req.body?.name === 'string' ? req.body.name : undefined
+  );
+
+  res.status(201).json({
+    success: true,
+    message: 'Scheda salvata fra le schede rapide.',
+    template,
+  });
+}
+
 /** Storico schede del cliente autenticato. */
 export async function myWorkouts(req: Request, res: Response): Promise<void> {
   if (!req.user) {
@@ -104,7 +124,12 @@ export async function myActive(req: Request, res: Response): Promise<void> {
     throw unauthorized('Autenticazione richiesta.');
   }
   const workout = await workoutService.getActiveWorkoutForUser(req.user.userId);
-  res.json({ success: true, workout });
+
+  // Il giorno da aprire per primo: lo stesso "prossimo allenamento"
+  // proposto in Home, cosi' le due pagine non si contraddicono.
+  const prossimo = workout ? await prossimoGiorno(req.user.userId, workout.id) : null;
+
+  res.json({ success: true, workout, nextDayIndex: prossimo?.index ?? 0 });
 }
 
 // ---------------------------------------------------------------------------
@@ -201,6 +226,8 @@ type EsercizioSorgente = {
   suggestedWeight: unknown;
   notes: string | null;
   linkedToPrevious: boolean;
+  kind: 'NORMAL' | 'PYRAMID';
+  pyramidSets: { reps: string; suggestedWeight: unknown }[];
   exercise: { id: number; name: string; muscleGroup: string };
 };
 type GiornoSorgente = { label: string; exercises: EsercizioSorgente[] };
@@ -222,6 +249,8 @@ function giorniPerPdf(days: unknown): SchedaPdf['days'] {
       suggestedWeight: ex.suggestedWeight,
       notes: ex.notes,
       linkedToPrevious: ex.linkedToPrevious,
+      kind: ex.kind,
+      pyramidSets: ex.pyramidSets ?? [],
       exercise: {
         id: ex.exercise.id,
         name: ex.exercise.name,

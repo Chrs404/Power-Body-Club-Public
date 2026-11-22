@@ -1,420 +1,653 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
-    <ion-buttons slot="start">
-      <ion-back-button [defaultHref]="percorsoRitorno()"></ion-back-button>
-    </ion-buttons>
-    <ion-title>
-      @if (modalitaModello()) {
-        {{ templateId() ? 'Modifica scheda rapida' : 'Nuova scheda rapida' }}
-      } @else {
-        {{ editingWorkoutId() ? 'Modifica scheda' : 'Nuova scheda' }}
+    <div class="pbc-head testa" [class.pbc-head-largo]="largo()">
+      <ion-back-button [defaultHref]="percorsoRitorno()" text=""></ion-back-button>
+      <div class="pbc-head-text">
+        <span class="pbc-eyebrow">{{ occhiello }}</span>
+        <h1 class="pbc-h1">{{ titolo }}</h1>
+      </div>
+      @if (!loading() && passo() === 2) {
+        @if (largo()) {
+          <div class="testa-azioni">
+            @if (!modalitaModello()) {
+              <button type="button" class="pbc-btn outline small" (click)="salvaComeRapida()">
+                <ion-icon name="bookmark-outline" aria-hidden="true"></ion-icon>
+                Salva come scheda rapida
+              </button>
+            }
+            <button type="button" class="pbc-btn primary" [disabled]="!canSave || saving()" (click)="save()">
+              {{ testoSalva }}
+            </button>
+          </div>
+        } @else if (!modalitaModello()) {
+          <button type="button" class="pbc-icon-btn" (click)="salvaComeRapida()" aria-label="Salva come scheda rapida">
+            <ion-icon name="bookmark-outline" aria-hidden="true"></ion-icon>
+          </button>
+        }
       }
-    </ion-title>
+    </div>
+
+    <!-- Telefono: i giorni come chip, uno alla volta -->
+    @if (!loading() && passo() === 2 && !largo()) {
+      <div class="pbc-chips" role="tablist" aria-label="Giorni della scheda">
+        @for (day of days(); track day.uid; let i = $index) {
+          <button type="button" class="pbc-chip" role="tab" [class.on]="i === giornoAttivo()"
+            [attr.aria-selected]="i === giornoAttivo()" (click)="giornoAttivo.set(i)">{{ day.label || 'Giorno' }}</button>
+        }
+        <button type="button" class="pbc-chip piu" (click)="addDay()" aria-label="Aggiungi un giorno">
+          <ion-icon name="add" aria-hidden="true"></ion-icon>
+        </button>
+      </div>
+    }
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
+<ion-content>
   @if (loading()) {
     <div class="d-flex justify-content-center py-5">
       <ion-spinner name="crescent"></ion-spinner>
     </div>
   } @else if (errorMessage() && days().length === 0) {
-    <!--
-      Caricamento fallito: senza questo blocco la pagina apparirebbe come
-      una scheda nuova e vuota, senza alcuna indicazione del problema.
-    -->
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-12 col-md-8">
-          <div class="alert alert-danger">{{ errorMessage() }}</div>
-        </div>
-      </div>
+    <!-- Caricamento fallito: senza questo la pagina sembrerebbe una scheda nuova e vuota. -->
+    <div class="pagina">
+      <div class="alert alert-danger">{{ errorMessage() }}</div>
     </div>
-  } @else {
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-12 col-md-9 col-lg-7">
+  } @else if (passo() === 1) {
 
-          @if (modalitaModello()) {
-            <p class="text-muted mb-3">
-              Modello riutilizzabile: potrai assegnarlo a piu' clienti
-              senza ricostruirlo.
-            </p>
-          } @else {
-            <p class="text-muted mb-3">
-              Cliente: <strong>{{ clientName() }}</strong>
-            </p>
+    <!-- ======================================== Passo 1: dati e partenza -->
+    <div class="pagina">
+      <label class="pbc-field">
+        <span>Nome scheda *</span>
+        <input class="pbc-input" type="text" [(ngModel)]="name" placeholder="es. Massa – Dicembre" maxlength="80" />
+      </label>
+      <div class="due-colonne">
+        <label class="pbc-field">
+          <span>Inizio</span>
+          <input class="pbc-input" type="date" [(ngModel)]="startDate" />
+        </label>
+        <label class="pbc-field">
+          <span>Fine</span>
+          <input class="pbc-input" type="date" [(ngModel)]="endDate" />
+        </label>
+      </div>
+      <label class="pbc-field">
+        <span>Note</span>
+        <textarea class="pbc-input area" rows="2" [(ngModel)]="notes" maxlength="500"
+          placeholder="Indicazioni per il cliente (facoltative)"></textarea>
+      </label>
+
+      <section class="partenza" aria-label="Da dove parti">
+        <span class="pbc-eyebrow">Da dove parti</span>
+        <button type="button" class="opzione" [class.scelta]="partenza() === null"
+          [attr.aria-pressed]="partenza() === null" (click)="scegliPartenza(null)">
+          <span class="radio" aria-hidden="true"></span>
+          <span class="opzione-testo">
+            <span class="opzione-titolo">Scheda vuota</span>
+            <span class="pbc-small">Aggiungi giorni ed esercizi a mano</span>
+          </span>
+        </button>
+        @for (m of schedeRapide(); track m.id) {
+          <button type="button" class="opzione" [class.scelta]="partenza() === m.id"
+            [attr.aria-pressed]="partenza() === m.id" (click)="scegliPartenza(m.id)" [disabled]="caricandoPartenza()">
+            <span class="radio" aria-hidden="true"></span>
+            <span class="opzione-testo">
+              <span class="opzione-titolo">{{ m.name }}</span>
+              <span class="pbc-small">Scheda rapida · {{ descriviModello(m) }}</span>
+            </span>
+          </button>
+        }
+      </section>
+    </div>
+
+  } @else if (!largo()) {
+
+    <!-- ======================================== Passo 2, telefono -->
+    <div class="pagina">
+      <!-- Dati della scheda: riassunto, modificabile -->
+      @if (nuovaPerCliente) {
+        <div class="riepilogo">
+          <span class="pbc-muted">{{ startDate | date: 'dd/MM/yyyy' }}@if (endDate) { – {{ endDate | date: 'dd/MM/yyyy' }} }</span>
+          <button type="button" class="pbc-link" (click)="passo.set(1)">Modifica dati</button>
+        </div>
+      } @else {
+        <div class="pbc-card dati">
+          <button type="button" class="dati-testa" (click)="datiAperti.set(!datiAperti())" [attr.aria-expanded]="datiAperti()">
+            <span class="pbc-eyebrow">Dati della scheda</span>
+            <ion-icon [name]="datiAperti() ? 'chevron-up-outline' : 'chevron-down-outline'" aria-hidden="true"></ion-icon>
+          </button>
+          @if (datiAperti()) {
+            <ng-container *ngTemplateOutlet="campiScheda"></ng-container>
           }
+        </div>
+      }
 
-          <ion-list class="mb-3">
-            <ion-item>
-              <ion-input label="Nome scheda *" labelPlacement="floating"
-                [(ngModel)]="name" placeholder="es. Massa - Ottobre"></ion-input>
-            </ion-item>
-            @if (!modalitaModello()) {
-              <ion-item>
-                <ion-input label="Inizio" labelPlacement="stacked" type="date"
-                  [(ngModel)]="startDate"></ion-input>
-              </ion-item>
-              <ion-item>
-                <ion-input label="Fine" labelPlacement="stacked" type="date"
-                  [(ngModel)]="endDate"></ion-input>
-              </ion-item>
-            }
-            <ion-item>
-              <ion-textarea label="Note" labelPlacement="floating"
-                [(ngModel)]="notes" [autoGrow]="true" rows="2"></ion-textarea>
-            </ion-item>
-          </ion-list>
+      @if (giornoCorrente; as day) {
+        @let dayIndex = giornoAttivo();
+        <div class="giorno-nome">
+          <label class="pbc-field">
+            <span>Nome del giorno</span>
+            <input class="pbc-input" type="text" [value]="day.label" maxlength="50" placeholder="Nome del giorno"
+              (input)="updateDayLabel(dayIndex, $any($event.target).value)" />
+          </label>
+          <button type="button" class="pbc-icon-btn danger alto" (click)="confirmRemoveDay(dayIndex)"
+            [attr.aria-label]="'Elimina ' + (day.label || 'il giorno')">
+            <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
 
-          @for (day of days(); track day.uid; let dayIndex = $index) {
-            <div class="day-block mb-3">
-              <div class="day-head">
-                <ion-input
-                  class="day-title"
-                  [value]="day.label"
-                  (ionInput)="updateDayLabel(dayIndex, $any($event.target).value)"
-                  placeholder="Nome del giorno"
-                ></ion-input>
-                <ion-button fill="clear" color="danger" size="small"
-                  (click)="confirmRemoveDay(dayIndex)">
-                  <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-                </ion-button>
-              </div>
-
-              @if (day.exercises.length === 0) {
-                <p class="text-muted small px-3 py-2 mb-0">
-                  Nessun esercizio. Aggiungine uno qui sotto.
-                </p>
-              } @else {
-                <ion-reorder-group [disabled]="false"
-                  (ionItemReorder)="reorderExercises(dayIndex, $any($event))">
-                  @for (ex of day.exercises; track ex.uid; let exIndex = $index) {
-                    <div class="exercise-row"
-                      [class.in-superset]="ex.linkedToPrevious"
-                      [class.apre-superset]="apreSuperset(day, exIndex)">
-
-                      <!--
-                        Dentro la riga e non come elemento a se': il gruppo
-                        trascinabile conta i suoi figli per calcolare le
-                        posizioni, e un'intestazione separata le sfaserebbe.
-                      -->
-                      @if (sezioneDi(day, exIndex); as gruppo) {
-                        <div class="pbc-sezione-muscolo sezione-in-riga">{{ groupLabels[gruppo] }}</div>
+        @if (day.exercises.length === 0) {
+          <p class="pbc-vuoto piccolo">Nessun esercizio in questo giorno.</p>
+        } @else {
+          <ion-reorder-group class="righe" [disabled]="false" (ionItemReorder)="reorderExercises(dayIndex, $any($event))">
+            @for (ex of day.exercises; track ex.uid; let i = $index) {
+              @let ss = inSuperset(day, i);
+              @let piramide = ex.kind === 'PYRAMID' && !ss;
+              <div class="riga" [class.ss]="ss" [class.ss-inizio]="apreSuperset(day, i)"
+                [class.ss-fine]="chiudeSuperset(day, i)" [class.aperta]="aperto(ex.uid)">
+                @if (sezioneDi(day, i); as gruppo) {
+                  <div class="pbc-sezione-muscolo sezione">{{ groupLabels[gruppo] }}</div>
+                }
+                <div class="riga-testa">
+                  <ion-reorder class="maniglia"></ion-reorder>
+                  <span class="sigla" [class.ochre]="ss">{{ siglaDi(day, i) }}</span>
+                  <button type="button" class="riga-testo" (click)="apriChiudi(ex.uid)" [attr.aria-expanded]="aperto(ex.uid)">
+                    <span class="nome">{{ ex.exerciseName }}</span>
+                    <span class="riassunto">
+                      @if (piramide) {
+                        <span class="pbc-pill ochre mini">Piramidale</span>
                       }
+                      {{ riassunto(day, i) }}
+                    </span>
+                  </button>
+                  @if (i > 0 && !ex.linkedToPrevious) {
+                    <button type="button" class="pbc-icon-btn muted" (click)="toggleCollegamento(dayIndex, i)"
+                      [attr.aria-label]="'Collega ' + ex.exerciseName + ' al precedente in superset'">
+                      <ion-icon name="link-outline" aria-hidden="true"></ion-icon>
+                    </button>
+                  }
+                </div>
 
-                      <div class="exercise-head">
-                        <ion-reorder></ion-reorder>
+                @if (aperto(ex.uid)) {
+                  <div class="editor">
+                    <ng-container *ngTemplateOutlet="editorEsercizio; context: { $implicit: ex, day: day, dayIndex: dayIndex, i: i }"></ng-container>
+                  </div>
+                }
 
-                        @if (exIndex > 0) {
-                          <ion-button fill="clear" size="small"
-                            [color]="ex.linkedToPrevious ? 'secondary' : 'medium'"
-                            (click)="toggleCollegamento(dayIndex, exIndex)"
-                            [attr.aria-label]="ex.linkedToPrevious
-                              ? 'Scollega dal precedente'
-                              : 'Collega al precedente in superset'">
-                            <ion-icon
-                              [name]="ex.linkedToPrevious ? 'link-outline' : 'unlink-outline'"
-                              slot="icon-only"></ion-icon>
-                          </ion-button>
-                        } @else {
-                          <span class="link-spacer"></span>
+                @if (chiudeSuperset(day, i)) {
+                  <div class="ss-piede">
+                    <span>{{ infoSuperset(day, i) }}</span>
+                    <button type="button" class="pbc-btn ghost small" (click)="sciogliSuperset(dayIndex, i)">Scollega</button>
+                  </div>
+                }
+              </div>
+            }
+          </ion-reorder-group>
+        }
+
+        <button type="button" class="pbc-btn outline block" (click)="openPicker(dayIndex)">
+          <ion-icon name="add" aria-hidden="true"></ion-icon>
+          Aggiungi esercizi
+        </button>
+        <p class="pbc-small text-center mb-0">Tocca un esercizio per modificare serie, ripetizioni e pesi.</p>
+      }
+
+      @if (errorMessage()) {
+        <div class="alert alert-danger mb-0">{{ errorMessage() }}</div>
+      }
+    </div>
+
+  } @else {
+
+    <!-- ======================================== Passo 2, computer -->
+    <div class="pagina larga">
+      <div class="campi-larghi">
+        <ng-container *ngTemplateOutlet="campiScheda"></ng-container>
+      </div>
+
+      <div class="colonne">
+        <div class="colonna-editor">
+          @if (giornoCorrente; as day) {
+            @let dayIndex = giornoAttivo();
+            <div class="giorni-barra">
+              <div class="giorni-chip" role="tablist" aria-label="Giorni della scheda">
+                @for (d of days(); track d.uid; let gi = $index) {
+                  <button type="button" class="pbc-chip" role="tab" [class.on]="gi === dayIndex"
+                    [attr.aria-selected]="gi === dayIndex" (click)="giornoAttivo.set(gi)">{{ d.label || 'Giorno' }}</button>
+                }
+                <button type="button" class="pbc-chip piu" (click)="addDay()" aria-label="Aggiungi un giorno">
+                  <ion-icon name="add" aria-hidden="true"></ion-icon>
+                </button>
+              </div>
+              <label class="pbc-field giorno-campo">
+                <span>Nome del giorno</span>
+                <input class="pbc-input" type="text" [value]="day.label" maxlength="50"
+                  (input)="updateDayLabel(dayIndex, $any($event.target).value)" />
+              </label>
+              <button type="button" class="pbc-icon-btn danger alto" (click)="confirmRemoveDay(dayIndex)"
+                [attr.aria-label]="'Elimina ' + (day.label || 'il giorno')">
+                <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+              </button>
+            </div>
+
+            <div class="pbc-card tabella">
+              <div class="tabella-scorre">
+                <div class="tgrid intestazione" aria-hidden="true">
+                  <span></span><span></span><span>Esercizio</span><span>Tipo</span>
+                  <span class="c">Serie</span><span class="c">Rip.</span><span class="c">Rec. s</span><span class="c">Kg</span>
+                  <span></span><span></span>
+                </div>
+
+                @if (day.exercises.length === 0) {
+                  <p class="pbc-vuoto piccolo">Nessun esercizio: aggiungili dal catalogo qui a fianco.</p>
+                } @else {
+                  <ion-reorder-group [disabled]="false" (ionItemReorder)="reorderExercises(dayIndex, $any($event))">
+                    @for (ex of day.exercises; track ex.uid; let i = $index) {
+                      @let ss = inSuperset(day, i);
+                      @let piramide = ex.kind === 'PYRAMID' && !ss;
+                      <div class="trow" [class.ss]="ss" [class.ss-inizio]="apreSuperset(day, i)" [class.ss-fine]="chiudeSuperset(day, i)">
+                        @if (sezioneDi(day, i); as gruppo) {
+                          <div class="pbc-sezione-muscolo sezione">{{ groupLabels[gruppo] }}</div>
+                        }
+                        <div class="tgrid">
+                          <ion-reorder class="maniglia"></ion-reorder>
+                          <span class="sigla" [class.ochre]="ss">{{ siglaDi(day, i) }}</span>
+                          <span class="tnome">{{ ex.exerciseName }}</span>
+                          @if (!ss) {
+                            <select class="pbc-input filled tipo-sel" [attr.aria-label]="'Tipo di esercizio per ' + ex.exerciseName"
+                              (change)="impostaTipo(dayIndex, i, $any($event.target).value)">
+                              <option value="NORMAL" [selected]="ex.kind !== 'PYRAMID'">Normale</option>
+                              <option value="PYRAMID" [selected]="ex.kind === 'PYRAMID'">Piramidale</option>
+                            </select>
+                          } @else {
+                            <span class="trattino">Superset</span>
+                          }
+                          @if (piramide) {
+                            <span class="trattino c">{{ ex.pyramidSets.length }}</span>
+                          } @else if (ex.linkedToPrevious) {
+                            <span class="trattino c">—</span>
+                          } @else {
+                            <input class="pbc-input filled num" type="number" min="1" [value]="ex.sets"
+                              [attr.aria-label]="'Serie di ' + ex.exerciseName"
+                              (input)="aggiornaGiri(dayIndex, i, +$any($event.target).value)" />
+                          }
+                          @if (piramide) {
+                            <span class="trattino c">—</span>
+                          } @else {
+                            <input class="pbc-input filled num" type="text" maxlength="120" [value]="ex.reps"
+                              [attr.aria-label]="'Ripetizioni di ' + ex.exerciseName"
+                              (input)="updateExercise(dayIndex, i, { reps: $any($event.target).value })" />
+                          }
+                          @if (ex.linkedToPrevious) {
+                            <span class="trattino c">—</span>
+                          } @else {
+                            <input class="pbc-input filled num" type="number" min="0" [value]="ex.restSeconds"
+                              [attr.aria-label]="'Recupero in secondi di ' + ex.exerciseName"
+                              (input)="aggiornaRecupero(dayIndex, i, +$any($event.target).value)" />
+                          }
+                          @if (piramide) {
+                            <span class="trattino c">—</span>
+                          } @else {
+                            <input class="pbc-input filled num" type="text" inputmode="decimal" [value]="ex.suggestedWeight ?? ''"
+                              [attr.aria-label]="'Chili suggeriti per ' + ex.exerciseName"
+                              (input)="updateExercise(dayIndex, i, { suggestedWeight: numeroOppureNull($any($event.target).value) })" />
+                          }
+                          @if (i > 0 && !ex.linkedToPrevious) {
+                            <button type="button" class="pbc-icon-btn muted" (click)="toggleCollegamento(dayIndex, i)"
+                              [attr.aria-label]="'Collega ' + ex.exerciseName + ' al precedente in superset'">
+                              <ion-icon name="link-outline" aria-hidden="true"></ion-icon>
+                            </button>
+                          } @else {
+                            <span></span>
+                          }
+                          <button type="button" class="pbc-icon-btn muted" (click)="removeExercise(dayIndex, i)"
+                            [attr.aria-label]="'Rimuovi ' + ex.exerciseName">
+                            <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+                          </button>
+                        </div>
+
+                        @if (piramide) {
+                          <div class="tpiramide">
+                            <span class="pbc-small">Ripetizioni × kg</span>
+                            @for (serie of ex.pyramidSets; track $index; let n = $index) {
+                              <span class="cella-serie">
+                                <span class="serie-n">{{ n + 1 }}ª</span>
+                                <input class="pbc-input filled mini" type="text" maxlength="40" [value]="serie.reps"
+                                  [attr.aria-label]="'Ripetizioni della serie ' + (n + 1)"
+                                  (input)="aggiornaSerie(dayIndex, i, n, { reps: $any($event.target).value })" />
+                                <span class="per">×</span>
+                                <input class="pbc-input filled mini" type="text" inputmode="decimal" [value]="serie.suggestedWeight ?? ''"
+                                  placeholder="—" [attr.aria-label]="'Chili della serie ' + (n + 1)"
+                                  (input)="aggiornaSerie(dayIndex, i, n, { suggestedWeight: numeroOppureNull($any($event.target).value) })" />
+                              </span>
+                            }
+                            <button type="button" class="pbc-btn ghost small" (click)="aggiungiSerie(dayIndex, i)"
+                              [disabled]="ex.pyramidSets.length >= 12">
+                              <ion-icon name="add" aria-hidden="true"></ion-icon> Serie
+                            </button>
+                            <button type="button" class="pbc-btn ghost small" (click)="rimuoviSerie(dayIndex, i, ex.pyramidSets.length - 1)"
+                              [disabled]="ex.pyramidSets.length <= 2">− Serie</button>
+                          </div>
                         }
 
-                        <span class="exercise-position">{{ siglaDi(day, exIndex) }}</span>
-                        <span class="exercise-name">{{ ex.exerciseName }}</span>
-
-                        <ion-button fill="clear" color="danger" size="small"
-                          (click)="removeExercise(dayIndex, exIndex)"
-                          aria-label="Rimuovi">
-                          <ion-icon name="close-circle-outline" slot="icon-only"></ion-icon>
-                        </ion-button>
+                        @if (chiudeSuperset(day, i)) {
+                          <div class="ss-piede">
+                            <span>{{ infoSuperset(day, i) }}: giri e recupero sono quelli del primo esercizio</span>
+                            <button type="button" class="pbc-btn ghost small" (click)="sciogliSuperset(dayIndex, i)">Scollega</button>
+                          </div>
+                        }
                       </div>
-
-                      <div class="row g-2 px-3 pb-2">
-                        <!--
-                          I tre campi numerici stanno su una riga; le
-                          ripetizioni hanno una riga propria perche' sono
-                          testo libero e possono contenere il tempo di
-                          esecuzione per esteso ("12 positiva 2 secondi,
-                          fermo 1, negativa 4"): in un quarto di larghezza
-                          non se ne vedrebbe che una parola.
-                        -->
-                        <div class="col-4">
-                          <ion-input label="Serie" labelPlacement="stacked" type="number"
-                            [value]="ex.sets" min="1"
-                            [disabled]="ex.linkedToPrevious"
-                            (ionInput)="aggiornaGiri(dayIndex, exIndex, +$any($event.target).value)"
-                          ></ion-input>
-                        </div>
-                        <div class="col-4">
-                          <ion-input label="Rec. (s)" labelPlacement="stacked" type="number"
-                            [value]="ex.restSeconds" min="0"
-                            [disabled]="ex.linkedToPrevious"
-                            (ionInput)="aggiornaRecupero(dayIndex, exIndex, +$any($event.target).value)"
-                          ></ion-input>
-                        </div>
-                        <div class="col-4">
-                          <ion-input label="Kg" labelPlacement="stacked" type="number"
-                            [value]="ex.suggestedWeight" min="0" step="0.5"
-                            (ionInput)="updateExercise(dayIndex, exIndex, { suggestedWeight: $any($event.target).value === '' ? null : +$any($event.target).value })"
-                          ></ion-input>
-                        </div>
-                        <div class="col-12">
-                          <ion-textarea label="Ripetizioni" labelPlacement="stacked"
-                            [value]="ex.reps" [autoGrow]="true" rows="1"
-                            [maxlength]="120"
-                            placeholder="8-10, max, oppure 12 positiva 2s fermo 1s negativa 4s"
-                            (ionInput)="updateExercise(dayIndex, exIndex, { reps: $any($event.target).value })"
-                          ></ion-textarea>
-                        </div>
-                      </div>
-
-                      @if (ex.linkedToPrevious) {
-                        <p class="superset-nota">
-                          Giri e recupero sono quelli del primo esercizio del superset.
-                        </p>
-                      }
-                    </div>
-                  }
-                </ion-reorder-group>
-              }
-
-              <ion-button expand="block" fill="clear" size="small"
-                (click)="openPicker(dayIndex)">
-                <ion-icon name="add-circle-outline" slot="start"></ion-icon>
-                Aggiungi esercizio
-              </ion-button>
+                    }
+                  </ion-reorder-group>
+                }
+              </div>
             </div>
+
+            <p class="pbc-small mb-0">
+              {{ totaleGiorni }}. Trascina le righe per cambiare l'ordine.
+              @if (blockingReason; as motivo) {
+                <span class="avviso">{{ motivo }}</span>
+              }
+            </p>
+            @if (errorMessage()) {
+              <div class="alert alert-danger mb-0">{{ errorMessage() }}</div>
+            }
           }
+        </div>
 
-          <ion-button expand="block" fill="outline" (click)="addDay()">
-            <ion-icon name="add" slot="start"></ion-icon>
-            Aggiungi giorno
-          </ion-button>
-
-          @if (errorMessage()) {
-            <div class="alert alert-danger py-2 px-3 mt-3">{{ errorMessage() }}</div>
-          }
-
-          <ion-note class="d-block text-center mt-3">
-            {{ days().length }} giorni · {{ totalExercises }} esercizi
-          </ion-note>
-
-          @if (blockingReason; as reason) {
-            <ion-note color="warning" class="d-block text-center mt-1">
-              {{ reason }}
-            </ion-note>
-          }
-
-          <ion-button expand="block" class="mt-2 mb-4"
-            [disabled]="!canSave || saving()" (click)="save()">
-            @if (saving()) {
-              <ion-spinner name="crescent"></ion-spinner>
+        <!-- Catalogo sempre aperto -->
+        <aside class="pbc-card catalogo" aria-label="Catalogo esercizi">
+          <span class="pbc-eyebrow">Catalogo esercizi</span>
+          <label class="cerca">
+            <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+            <input type="search" placeholder="Cerca" aria-label="Cerca un esercizio"
+              [(ngModel)]="catalogSearch" (input)="onCatalogSearch()" />
+          </label>
+          <div class="gruppi">
+            <button type="button" class="pbc-chip piccolo" [class.on]="filtroGruppo() === null" (click)="filtroGruppo.set(null)">Tutti</button>
+            @for (g of gruppiCatalogo; track g) {
+              <button type="button" class="pbc-chip piccolo" [class.on]="filtroGruppo() === g" (click)="scegliGruppo(g)">{{ groupLabels[g] }}</button>
+            }
+          </div>
+          <div class="catalogo-elenco">
+            @if (catalogLoading()) {
+              <div class="d-flex justify-content-center py-4"><ion-spinner name="crescent"></ion-spinner></div>
+            } @else if (catalogoFiltrato.length === 0) {
+              <p class="pbc-small py-3 mb-0">Nessun esercizio trovato.</p>
             } @else {
-              <ion-icon name="save-outline" slot="start"></ion-icon>
-              @if (modalitaModello()) {
-                {{ templateId() ? 'Salva modifiche' : 'Salva scheda rapida' }}
-              } @else {
-                {{ editingWorkoutId() ? 'Salva modifiche' : 'Crea e assegna' }}
+              @for (e of catalogoFiltrato; track e.id) {
+                @let presente = giaNelGiorno(e.id);
+                <div class="voce">
+                  <div class="voce-testo">
+                    <span class="voce-nome" [class.spento]="presente">{{ e.name }}</span>
+                    <span class="pbc-small">{{ presente ? 'Già in questo giorno' : (e.description || groupLabels[e.muscleGroup]) }}</span>
+                  </div>
+                  @if (presente) {
+                    <span class="fatto" aria-label="Già in questo giorno"><ion-icon name="checkmark" aria-hidden="true"></ion-icon></span>
+                  }
+                  <button type="button" class="pbc-icon-btn piu" (click)="aggiungiSubito(e)"
+                    [attr.aria-label]="'Aggiungi ' + e.name + ' a ' + (giornoCorrente?.label || 'questo giorno')">
+                    <ion-icon name="add" aria-hidden="true"></ion-icon>
+                  </button>
+                </div>
               }
             }
-          </ion-button>
-
-          @if (!editingWorkoutId() && !modalitaModello()) {
-            <p class="text-muted small text-center">
-              L'eventuale scheda attiva precedente verrà archiviata automaticamente.
-            </p>
-          }
-
-        </div>
+          </div>
+          <button type="button" class="pbc-btn outline block small" (click)="apriNuovoEsercizioDiretto()">
+            <ion-icon name="add" aria-hidden="true"></ion-icon>
+            Nuovo esercizio
+          </button>
+        </aside>
       </div>
+    </div>
+
+  }
+</ion-content>
+
+<!-- Piede fisso: telefono (passo 1 e 2) e passo 1 sul computer -->
+@if (!loading() && !(errorMessage() && days().length === 0) && (!largo() || passo() === 1)) {
+  <ion-footer class="ion-no-border">
+    <div class="piede">
+      @if (passo() === 1) {
+        <span class="pbc-small text-center">Una scheda rapida si può modificare prima di assegnarla.</span>
+        <button type="button" class="pbc-btn primary block" (click)="continua()" [disabled]="caricandoPartenza()">Continua</button>
+      } @else {
+        @if (blockingReason; as motivo) {
+          <span class="avviso">{{ motivo }}</span>
+        }
+        <div class="piede-riga">
+          <span class="pbc-small conta">{{ totaleGiorni }}</span>
+          <button type="button" class="pbc-btn primary salva" [disabled]="!canSave || saving()" (click)="save()">
+            {{ testoSalva }}
+          </button>
+        </div>
+      }
+    </div>
+  </ion-footer>
+}
+
+<!-- ======================================== Campi della scheda (riusati) -->
+<ng-template #campiScheda>
+  <div class="campi">
+    <label class="pbc-field nome-campo">
+      <span>Nome scheda *</span>
+      <input class="pbc-input" type="text" [(ngModel)]="name" maxlength="80" placeholder="es. Massa – Dicembre" />
+    </label>
+    @if (!modalitaModello()) {
+      <label class="pbc-field">
+        <span>Inizio</span>
+        <input class="pbc-input" type="date" [(ngModel)]="startDate" />
+      </label>
+      <label class="pbc-field">
+        <span>Fine</span>
+        <input class="pbc-input" type="date" [(ngModel)]="endDate" />
+      </label>
+    }
+    <label class="pbc-field note-campo">
+      <span>Note</span>
+      <input class="pbc-input" type="text" [(ngModel)]="notes" maxlength="500" placeholder="Indicazioni per il cliente" />
+    </label>
+  </div>
+</ng-template>
+
+<!-- ======================================== Editor di un esercizio (telefono) -->
+<ng-template #editorEsercizio let-ex let-day="day" let-dayIndex="dayIndex" let-i="i">
+  @if (!inSuperset(day, i)) {
+    <div class="pbc-segment tipo" role="radiogroup" aria-label="Tipo di esercizio">
+      <button type="button" role="radio" [class.on]="ex.kind !== 'PYRAMID'" [attr.aria-checked]="ex.kind !== 'PYRAMID'"
+        (click)="impostaTipo(dayIndex, i, 'NORMAL')">Normale</button>
+      <button type="button" role="radio" [class.on]="ex.kind === 'PYRAMID'" [attr.aria-checked]="ex.kind === 'PYRAMID'"
+        (click)="impostaTipo(dayIndex, i, 'PYRAMID')">Piramidale</button>
     </div>
   }
 
-  <ion-modal [isOpen]="pickerOpen()" (didDismiss)="chiudiPicker()">
-    <ng-template>
-      <ion-header>
-        @if (creandoEsercizio()) {
-          <ion-toolbar>
-            <ion-buttons slot="start">
-              <ion-button (click)="annullaCreazioneEsercizio()">
-                <ion-icon name="arrow-back-outline" slot="icon-only"></ion-icon>
-              </ion-button>
-            </ion-buttons>
-            <ion-title>Nuovo esercizio</ion-title>
-          </ion-toolbar>
-        } @else {
-          <ion-toolbar>
-            <ion-title>
-              @if (selezione().length > 0) {
-                {{ selezione().length }} selezionat{{ selezione().length === 1 ? 'o' : 'i' }}
-              } @else {
-                Scegli esercizi
-              }
-            </ion-title>
-            <ion-buttons slot="end">
-              @if (selezione().length > 0) {
-                <ion-button (click)="svuotaSelezione()">Svuota</ion-button>
-              }
-              <ion-button (click)="apriCreazioneEsercizio()" aria-label="Crea nuovo esercizio">
-                <ion-icon name="add" slot="icon-only"></ion-icon>
-              </ion-button>
-              <ion-button (click)="chiudiPicker()">Chiudi</ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-          <ion-toolbar>
-            <ion-searchbar placeholder="Cerca" [(ngModel)]="catalogSearch"
-              (ionInput)="onCatalogSearch()" [debounce]="0"></ion-searchbar>
-          </ion-toolbar>
-        }
-      </ion-header>
-      <ion-content class="ion-padding">
-        @if (creandoEsercizio()) {
-
-          <form [formGroup]="nuovoEsercizioForm" (ngSubmit)="salvaNuovoEsercizio()">
-            <ion-list>
-              <ion-item>
-                <ion-input label="Nome *" labelPlacement="floating"
-                  formControlName="name" autocapitalize="sentences"></ion-input>
-              </ion-item>
-              <ion-item>
-                <ion-select label="Gruppo muscolare *" labelPlacement="floating"
-                  formControlName="muscleGroup" interface="action-sheet"
-                  cancelText="Annulla">
-                  @for (g of muscleGroups; track g) {
-                    <ion-select-option [value]="g">{{ groupLabels[g] }}</ion-select-option>
-                  }
-                </ion-select>
-              </ion-item>
-              <ion-item>
-                <ion-textarea label="Descrizione" labelPlacement="floating"
-                  formControlName="description" [autoGrow]="true" rows="2"
-                  placeholder="Esecuzione, note tecniche…"></ion-textarea>
-              </ion-item>
-            </ion-list>
-
-            <ion-note class="d-block px-2 mt-2">
-              L'esercizio entra nel catalogo della palestra e viene aggiunto
-              subito alla selezione.
-            </ion-note>
-
-            @if (erroreEsercizio()) {
-              <div class="alert alert-danger py-2 px-3 mt-3">{{ erroreEsercizio() }}</div>
-            }
-
-            <ion-button expand="block" type="submit" class="mt-3"
-              [disabled]="salvandoEsercizio()">
-              @if (salvandoEsercizio()) {
-                <ion-spinner name="crescent"></ion-spinner>
-              } @else {
-                Crea e aggiungi
-              }
-            </ion-button>
-          </form>
-
-        } @else if (catalogLoading()) {
-          <div class="d-flex justify-content-center py-5">
-            <ion-spinner name="crescent"></ion-spinner>
-          </div>
-        } @else if (catalog().length === 0) {
-
-          <!--
-            Il catalogo vuoto e' il momento in cui la creazione al volo
-            serve davvero: invece di un vicolo cieco, si propone di
-            creare l'esercizio appena cercato.
-          -->
-          <div class="pbc-empty">
-            <p class="mb-3">
-              @if (inRicerca) {
-                Nessun esercizio trovato per "{{ catalogSearch }}".
-              } @else {
-                Il catalogo è vuoto.
-              }
-            </p>
-            <ion-button fill="outline" (click)="apriCreazioneEsercizio()">
-              <ion-icon name="add" slot="start"></ion-icon>
-              Crea "{{ catalogSearch.trim() || 'nuovo esercizio' }}"
-            </ion-button>
-          </div>
-
-        } @else if (inRicerca) {
-
-          <!-- Durante la ricerca il raggruppamento nasconderebbe i risultati -->
-          <ion-list>
-            @for (ex of catalog(); track ex.id) {
-              <ion-item button (click)="toggleSelezione(ex)"
-                [class.selezionato]="posizioneSelezione(ex.id) > 0">
-                <div slot="start" class="segno-selezione"
-                  [class.attivo]="posizioneSelezione(ex.id) > 0">
-                  @if (posizioneSelezione(ex.id) > 0) {
-                    {{ posizioneSelezione(ex.id) }}
-                  }
-                </div>
-                <ion-label>
-                  <h2>{{ ex.name }}</h2>
-                </ion-label>
-                <ion-chip slot="end" outline="true">
-                  {{ groupLabels[ex.muscleGroup] }}
-                </ion-chip>
-              </ion-item>
-            }
-          </ion-list>
-
-        } @else {
-
-          <ion-accordion-group
-            [value]="gruppoAperto()"
-            (ionChange)="onGruppoChange($any($event).detail.value)"
-          >
-            @for (blocco of catalogoRaggruppato; track blocco.gruppo) {
-              <ion-accordion [value]="blocco.gruppo">
-                <ion-item slot="header">
-                  <ion-label>
-                    <h2>{{ groupLabels[blocco.gruppo] }}</h2>
-                  </ion-label>
-                  <ion-badge slot="end" color="medium">
-                    {{ blocco.esercizi.length }}
-                  </ion-badge>
-                </ion-item>
-                <div slot="content">
-                  <ion-list>
-                    @for (ex of blocco.esercizi; track ex.id) {
-                      <ion-item button (click)="toggleSelezione(ex)"
-                        [class.selezionato]="posizioneSelezione(ex.id) > 0">
-                        <div slot="start" class="segno-selezione"
-                          [class.attivo]="posizioneSelezione(ex.id) > 0">
-                          @if (posizioneSelezione(ex.id) > 0) {
-                            {{ posizioneSelezione(ex.id) }}
-                          }
-                        </div>
-                        <ion-label>
-                          <h3>{{ ex.name }}</h3>
-                          @if (ex.description) {
-                            <p>{{ ex.description }}</p>
-                          }
-                        </ion-label>
-                      </ion-item>
-                    }
-                  </ion-list>
-                </div>
-              </ion-accordion>
-            }
-          </ion-accordion-group>
-
-        }
-      </ion-content>
-
-      @if (selezione().length > 0 && !creandoEsercizio()) {
-        <ion-footer>
-          <ion-toolbar>
-            <ion-button expand="block" class="m-2" (click)="confermaSelezione()">
-              Aggiungi {{ selezione().length }}
-              esercizi{{ selezione().length === 1 ? 'o' : '' }}
-            </ion-button>
-          </ion-toolbar>
-        </ion-footer>
+  @if (ex.kind === 'PYRAMID' && !inSuperset(day, i)) {
+    <div class="piramide">
+      <div class="piramide-riga intestazione" aria-hidden="true">
+        <span></span><span>Ripetizioni</span><span>Kg suggeriti</span><span></span>
+      </div>
+      @for (serie of ex.pyramidSets; track $index; let n = $index) {
+        <div class="piramide-riga">
+          <span class="piramide-numero">Serie {{ n + 1 }}</span>
+          <input class="pbc-input filled" type="text" maxlength="40" [value]="serie.reps"
+            [attr.aria-label]="'Ripetizioni della serie ' + (n + 1)"
+            (input)="aggiornaSerie(dayIndex, i, n, { reps: $any($event.target).value })" />
+          <input class="pbc-input filled" type="text" inputmode="decimal" [value]="serie.suggestedWeight ?? ''" placeholder="—"
+            [attr.aria-label]="'Chili suggeriti per la serie ' + (n + 1)"
+            (input)="aggiornaSerie(dayIndex, i, n, { suggestedWeight: numeroOppureNull($any($event.target).value) })" />
+          <button type="button" class="pbc-icon-btn muted" (click)="rimuoviSerie(dayIndex, i, n)"
+            [disabled]="ex.pyramidSets.length <= 2" [attr.aria-label]="'Rimuovi la serie ' + (n + 1)">
+            <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
       }
-    </ng-template>
-  </ion-modal>
-</ion-content>
+      <div class="piramide-piede">
+        <button type="button" class="pbc-btn ghost small" (click)="aggiungiSerie(dayIndex, i)" [disabled]="ex.pyramidSets.length >= 12">
+          <ion-icon name="add" aria-hidden="true"></ion-icon>
+          Aggiungi serie
+        </button>
+        <label class="recupero">
+          <span>Recupero s</span>
+          <input class="pbc-input filled" type="number" min="0" [value]="ex.restSeconds"
+            (input)="aggiornaRecupero(dayIndex, i, +$any($event.target).value)" />
+        </label>
+      </div>
+    </div>
+  } @else {
+    <div class="campi-esercizio">
+      <label class="pbc-field">
+        <span>{{ ex.linkedToPrevious || apreSuperset(day, i) ? 'Giri' : 'Serie' }}</span>
+        <input class="pbc-input filled" type="number" min="1" [value]="ex.sets" [disabled]="ex.linkedToPrevious"
+          (input)="aggiornaGiri(dayIndex, i, +$any($event.target).value)" />
+      </label>
+      <label class="pbc-field">
+        <span>Ripetizioni</span>
+        <input class="pbc-input filled" type="text" maxlength="120" [value]="ex.reps"
+          (input)="updateExercise(dayIndex, i, { reps: $any($event.target).value })" />
+      </label>
+      <label class="pbc-field">
+        <span>Recupero s</span>
+        <input class="pbc-input filled" type="number" min="0" [value]="ex.restSeconds" [disabled]="ex.linkedToPrevious"
+          (input)="aggiornaRecupero(dayIndex, i, +$any($event.target).value)" />
+      </label>
+      <label class="pbc-field">
+        <span>Kg</span>
+        <input class="pbc-input filled" type="text" inputmode="decimal" [value]="ex.suggestedWeight ?? ''"
+          (input)="updateExercise(dayIndex, i, { suggestedWeight: numeroOppureNull($any($event.target).value) })" />
+      </label>
+    </div>
+    @if (ex.linkedToPrevious) {
+      <p class="pbc-small mb-0">Giri e recupero sono quelli del primo esercizio del superset.</p>
+    }
+  }
+  <button type="button" class="pbc-btn danger small rimuovi" (click)="removeExercise(dayIndex, i)">
+    <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+    Rimuovi dalla scheda
+  </button>
+</ng-template>
+
+<!-- ======================================== Scegli esercizi / Nuovo esercizio -->
+<ion-modal [isOpen]="pickerOpen()" (didDismiss)="chiudiPicker()">
+  <ng-template>
+    @if (creandoEsercizio()) {
+      <ion-header class="ion-no-border">
+        <ion-toolbar>
+          <div class="pbc-head">
+            <button type="button" class="pbc-icon-btn" (click)="annullaCreazioneEsercizio()" aria-label="Indietro">
+              <ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon>
+            </button>
+            <div class="pbc-head-text">
+              <span class="pbc-eyebrow">Catalogo della palestra</span>
+              <h1 class="pbc-h1">Nuovo esercizio</h1>
+            </div>
+          </div>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <form id="nuovoEsercizio" class="pagina" [formGroup]="nuovoEsercizioForm" (ngSubmit)="salvaNuovoEsercizio()">
+          <label class="pbc-field">
+            <span>Nome *</span>
+            <input class="pbc-input" type="text" formControlName="name" autocapitalize="sentences" maxlength="80" />
+          </label>
+          <label class="pbc-field">
+            <span>Gruppo muscolare *</span>
+            <select class="pbc-input" formControlName="muscleGroup">
+              @for (g of muscleGroups; track g) {
+                <option [value]="g">{{ groupLabels[g] }}</option>
+              }
+            </select>
+          </label>
+          <label class="pbc-field">
+            <span>Descrizione</span>
+            <textarea class="pbc-input area" rows="2" formControlName="description" placeholder="Esecuzione, note tecniche…"></textarea>
+          </label>
+          <label class="pbc-field">
+            <span>Link video (YouTube)</span>
+            <input class="pbc-input" type="url" formControlName="videoUrl" autocapitalize="off" placeholder="https://…" />
+          </label>
+          <label class="pbc-field">
+            <span>Link immagine</span>
+            <input class="pbc-input" type="url" formControlName="imageUrl" autocapitalize="off" placeholder="https://…" />
+          </label>
+          @if (erroreEsercizio()) {
+            <div class="alert alert-danger mb-0">{{ erroreEsercizio() }}</div>
+          }
+        </form>
+      </ion-content>
+      <ion-footer class="ion-no-border">
+        <div class="piede">
+          <span class="pbc-small text-center">Entra nel catalogo e viene aggiunto subito alla scheda che stai creando.</span>
+          <button type="submit" form="nuovoEsercizio" class="pbc-btn primary block" [disabled]="salvandoEsercizio()">
+            {{ salvandoEsercizio() ? 'Creazione…' : 'Crea e aggiungi' }}
+          </button>
+        </div>
+      </ion-footer>
+    } @else {
+      <ion-header class="ion-no-border">
+        <ion-toolbar>
+          <div class="pbc-head">
+            <div class="pbc-head-text">
+              <span class="pbc-eyebrow">{{ giornoDestinazione }} · {{ selezione().length }} {{ selezione().length === 1 ? 'selezionato' : 'selezionati' }}</span>
+              <h1 class="pbc-h1">Scegli esercizi</h1>
+            </div>
+            <button type="button" class="pbc-icon-btn" (click)="chiudiPicker()" aria-label="Chiudi senza aggiungere">
+              <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+            </button>
+          </div>
+          <label class="cerca modale">
+            <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+            <input type="search" placeholder="Cerca in tutto il catalogo" aria-label="Cerca un esercizio"
+              [(ngModel)]="catalogSearch" (input)="onCatalogSearch()" />
+          </label>
+          <div class="pbc-chips gruppi-modale">
+            <button type="button" class="pbc-chip" [class.on]="filtroGruppo() === null" (click)="filtroGruppo.set(null)">Tutti</button>
+            @for (g of gruppiCatalogo; track g) {
+              <button type="button" class="pbc-chip" [class.on]="filtroGruppo() === g" (click)="scegliGruppo(g)">{{ groupLabels[g] }}</button>
+            }
+          </div>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <div class="pagina">
+          <button type="button" class="nuovo" (click)="apriCreazioneEsercizio()">
+            <span class="nuovo-icona" aria-hidden="true"><ion-icon name="add" aria-hidden="true"></ion-icon></span>
+            <span class="opzione-testo">
+              <span class="opzione-titolo">{{ catalogSearch.trim() ? 'Crea "' + catalogSearch.trim() + '"' : 'Nuovo esercizio' }}</span>
+              <span class="pbc-small">Non è nel catalogo? Crealo e aggiungilo subito</span>
+            </span>
+          </button>
+
+          @if (catalogLoading()) {
+            <div class="d-flex justify-content-center py-5"><ion-spinner name="crescent"></ion-spinner></div>
+          } @else if (catalogoFiltrato.length === 0) {
+            <p class="pbc-vuoto piccolo">
+              @if (inRicerca) { Nessun esercizio trovato per "{{ catalogSearch }}". } @else { Il catalogo è vuoto. }
+            </p>
+          } @else {
+            <div class="pbc-card scelta-elenco">
+              @for (e of catalogoFiltrato; track e.id) {
+                @let n = posizioneSelezione(e.id);
+                <button type="button" class="scelta-voce" [class.on]="n > 0" [attr.aria-pressed]="n > 0" (click)="toggleSelezione(e)">
+                  <span class="segno" [class.on]="n > 0" aria-hidden="true">{{ n > 0 ? n : '' }}</span>
+                  <span class="opzione-testo">
+                    <span class="opzione-titolo">{{ e.name }}</span>
+                    <span class="pbc-small">{{ e.description || groupLabels[e.muscleGroup] }}</span>
+                  </span>
+                </button>
+              }
+            </div>
+          }
+        </div>
+      </ion-content>
+      <ion-footer class="ion-no-border">
+        <div class="piede">
+          <div class="piede-riga">
+            <button type="button" class="pbc-btn" (click)="svuotaSelezione()" [disabled]="selezione().length === 0">Svuota</button>
+            <button type="button" class="pbc-btn primary salva" (click)="confermaSelezione()" [disabled]="selezione().length === 0">
+              Aggiungi {{ selezione().length || '' }} {{ selezione().length === 1 ? 'esercizio' : 'esercizi' }}
+            </button>
+          </div>
+        </div>
+      </ion-footer>
+    }
+  </ng-template>
+</ion-modal>

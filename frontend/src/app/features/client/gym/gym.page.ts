@@ -1,9 +1,7 @@
 import { Component, inject, signal, OnInit } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import {
-  IonContent, IonHeader, IonTitle, IonToolbar, IonSegment, IonSegmentButton,
-  IonLabel, IonList, IonItem, IonSpinner, IonNote, IonCard, IonCardContent,
-  IonCardHeader, IonCardTitle, IonCardSubtitle, IonRefresher,
+  IonContent, IonHeader, IonToolbar, IonSpinner, IonRefresher,
   IonRefresherContent, IonIcon,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
@@ -18,9 +16,7 @@ import {
   selector: 'app-client-gym',
   imports: [
     DatePipe,
-    IonContent, IonHeader, IonTitle, IonToolbar, IonSegment, IonSegmentButton,
-    IonLabel, IonList, IonItem, IonSpinner, IonNote, IonCard, IonCardContent,
-    IonCardHeader, IonCardTitle, IonCardSubtitle, IonRefresher,
+    IonContent, IonHeader, IonToolbar, IonSpinner, IonRefresher,
     IonRefresherContent, IonIcon,
   ],
   templateUrl: './gym.page.html',

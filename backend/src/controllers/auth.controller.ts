@@ -30,15 +30,18 @@ export async function firstAccess(req: Request, res: Response): Promise<void> {
     throw unauthorized('Autenticazione richiesta.');
   }
 
-  const user = await authService.completeFirstAccess(
+  const { user, token } = await authService.completeFirstAccess(
     req.user.userId,
     req.body as FirstAccessInput
   );
 
+  // Il token nuovo sostituisce quello in uso, che il cambio di password
+  // ha appena reso non valido.
   res.json({
     success: true,
     message: 'Profilo completato correttamente.',
     user,
+    token,
   });
 }
 
@@ -48,7 +51,11 @@ export async function changePassword(req: Request, res: Response): Promise<void>
   }
 
   const { currentPassword, newPassword } = req.body as ChangePasswordInput;
-  await authService.changePassword(req.user.userId, currentPassword, newPassword);
+  const token = await authService.changePassword(
+    req.user.userId,
+    currentPassword,
+    newPassword
+  );
 
-  res.json({ success: true, message: 'Password aggiornata correttamente.' });
+  res.json({ success: true, message: 'Password aggiornata correttamente.', token });
 }

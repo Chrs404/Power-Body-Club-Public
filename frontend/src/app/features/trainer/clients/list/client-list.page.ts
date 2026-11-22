@@ -1,51 +1,52 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
-  IonContent, IonHeader, IonTitle, IonToolbar, IonSearchbar,
-  IonSegment, IonSegmentButton, IonLabel, IonSpinner, IonList, IonItem,
-  IonListHeader, IonIcon, IonFab, IonFabButton, IonRefresher, IonRefresherContent,
+  IonContent, IonHeader, IonToolbar, IonSpinner, IonIcon,
+  IonRefresher, IonRefresherContent,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
-import {
-  add, cardOutline, barbellOutline, checkmarkCircleOutline,
-  alertCircleOutline, timeOutline, chevronForwardOutline, ellipseOutline,
-} from 'ionicons/icons';
+import { addOutline, searchOutline, chevronForwardOutline } from 'ionicons/icons';
 
 import { RenewalsService } from '../../../../core/services/renewals.service';
-import { RenewalItem, RenewalType } from '../../../../core/models/renewals.model';
+import { DeletionItem, RenewalItem } from '../../../../core/models/renewals.model';
+import { ClientDetailPage } from '../detail/client-detail.page';
 
-type Filtro = RenewalType;
+type Filtro = 'tutti' | 'rinnovi' | 'eliminazione';
+type Tono = 'ok' | 'warn' | 'bad' | '';
 
-/** Soglia sotto la quale una scadenza futura viene segnalata come urgente. */
+/** Una scadenza futura entro questa soglia e' "da rinnovare". */
 const GIORNI_URGENZA = 7;
 
+/** Un cliente con lo stato di abbonamento e scheda insieme, in una riga. */
+interface RigaCliente {
+  clientId: number;
+  nome: string;
+  username: string;
+  abbonamento: RenewalItem | null;
+  scheda: RenewalItem | null;
+  eliminazione: DeletionItem | null;
+}
+
 /**
- * Clienti: lo stato di ogni cliente su abbonamento e scheda, in un
- * solo elenco.
+ * Clienti: ogni cliente attivo in una riga, con lo stato di abbonamento e
+ * scheda affiancati. Prima i due stati stavano su due viste separate
+ * (Abbonamenti / Schede) e per sapere tutto di un cliente bisognava
+ * passare dall'una all'altra.
  *
- * Prima questa pagina mostrava solo gli abbonamenti, filtrati per
- * chi era in scadenza entro una finestra fissa. Le schede di
- * allenamento non comparivano da nessuna parte come avviso — bisognava
- * aprire ogni cliente per scoprire se la sua era vicina alla fine.
+ * "Ogni cliente" e' da prendere alla lettera: anche chi non ha
+ * abbonamento ne' scheda compare, in fondo, altrimenti un cliente appena
+ * creato senza date non sarebbe piu' raggiungibile.
  *
- * Qui non c'e' alcuna finestra temporale: ogni cliente attivo e'
- * visibile, ordinato per urgenza, cosi' la vista resta completa
- * invece di nascondere chi e' semplicemente in regola.
- *
- * "Ogni cliente" e' da prendere alla lettera, ed e' il motivo per cui
- * esiste il gruppo in fondo: anche chi non ha alcun abbonamento deve
- * comparire, altrimenti l'istruttore non ha modo di raggiungerlo — ne'
- * scorrendo, ne' cercando, perche' la ricerca filtra questo stesso
- * elenco. Era esattamente il caso di un cliente appena creato senza
- * date di abbonamento: spariva subito dopo essere stato inserito.
+ * Sul computer la pagina si divide in due: elenco a sinistra e dettaglio
+ * del cliente scelto a destra, senza cambiare pagina.
  */
 @Component({
   selector: 'app-client-list',
   imports: [
-    RouterLink,
-    IonContent, IonHeader, IonTitle, IonToolbar, IonSearchbar,
-    IonSegment, IonSegmentButton, IonLabel, IonSpinner, IonList, IonItem,
-    IonListHeader, IonIcon, IonFab, IonFabButton, IonRefresher, IonRefresherContent,
+    RouterLink, ClientDetailPage,
+    IonContent, IonHeader, IonToolbar, IonSpinner, IonIcon,
+    IonRefresher, IonRefresherContent,
   ],
   templateUrl: './client-list.page.html',
   styleUrl: './client-list.page.css',
@@ -53,34 +54,41 @@ const GIORNI_URGENZA = 7;
 export class ClientListPage implements OnInit {
   private readonly renewalsService = inject(RenewalsService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly loading = signal(true);
   readonly errorMessage = signal<string | null>(null);
   readonly items = signal<RenewalItem[]>([]);
+  readonly eliminazioni = signal<DeletionItem[]>([]);
 
-  readonly filtro = signal<Filtro>('subscription');
-
-  /*
-   * Signal, non una proprieta' normale, ed e' il punto in cui questa
-   * pagina si era rotta: `elementiFiltrati` e' un computed, e un
-   * computed si ricalcola solo quando cambia un signal da cui dipende.
-   * Con `searchTerm` proprieta' semplice, digitare non lo svegliava:
-   * l'elenco si aggiornava solo quando cambiava `items()`, cioe' al
-   * ricaricamento della pagina.
-   */
+  readonly filtro = signal<Filtro>('tutti');
   readonly searchTerm = signal('');
+
+  /** Schermo largo: elenco e dettaglio affiancati. */
+  readonly largo = signal(false);
+  /** Cliente aperto nella colonna di destra (solo su schermo largo). */
+  readonly selezionato = signal<number | null>(null);
 
   // ngOnInit ha già caricato i dati: al primo ingresso non serve rifarlo.
   private primoIngresso = true;
 
   constructor() {
-    addIcons({
-      add, cardOutline, barbellOutline, checkmarkCircleOutline,
-      alertCircleOutline, timeOutline, chevronForwardOutline, ellipseOutline,
-    });
+    addIcons({ addOutline, searchOutline, chevronForwardOutline });
+
+    const media = window.matchMedia('(min-width: 1200px)');
+    this.largo.set(media.matches);
+    const cambio = (e: MediaQueryListEvent) => this.largo.set(e.matches);
+    media.addEventListener('change', cambio);
+    this.destroyRef.onDestroy(() => media.removeEventListener('change', cambio));
   }
 
   ngOnInit(): void {
+    // ?filtro= arriva dai riquadri della Home.
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((p) => {
+      const f = p.get('filtro');
+      if (f === 'rinnovi' || f === 'eliminazione' || f === 'tutti') this.filtro.set(f);
+    });
     void this.load();
   }
 
@@ -89,9 +97,7 @@ export class ClientListPage implements OnInit {
       this.primoIngresso = false;
       return;
     }
-    // Tornando dal dettaglio di un cliente un abbonamento potrebbe
-    // essere stato appena rinnovato: senza questo, la voce resterebbe
-    // fra gli scaduti finché non si ricarica manualmente.
+    // Tornando dal dettaglio un abbonamento potrebbe essere stato appena rinnovato.
     void this.load();
   }
 
@@ -100,13 +106,18 @@ export class ClientListPage implements OnInit {
     (event.target as HTMLIonRefresherElement).complete();
   }
 
-  private async load(): Promise<void> {
+  async load(): Promise<void> {
     this.errorMessage.set(null);
     try {
-      // Nessun parametro: restituisce ogni cliente attivo, con o senza
-      // scadenze, indipendentemente da quanto lontana sia la data.
       const risposta = await this.renewalsService.list();
       this.items.set(risposta.items);
+      this.eliminazioni.set(risposta.deletions ?? []);
+
+      // Un cliente appena eliminato non resta aperto a destra.
+      const sel = this.selezionato();
+      if (sel !== null && !risposta.items.some((i) => i.clientId === sel)) {
+        this.selezionato.set(null);
+      }
     } catch {
       this.errorMessage.set('Impossibile caricare i clienti.');
     } finally {
@@ -114,100 +125,89 @@ export class ClientListPage implements OnInit {
     }
   }
 
-  // ------------------------------------------------------------- filtro
-
-  impostaFiltro(valore: string | number | undefined): void {
-    this.filtro.set((valore as Filtro) ?? 'subscription');
-  }
-
-  /**
-   * Aggiorna il testo cercato a ogni battuta.
-   *
-   * Sostituisce il precedente [(ngModel)]: la scrittura deve passare
-   * per .set(), altrimenti il computed non viene avvisato.
-   */
   aggiornaRicerca(event: Event): void {
-    const valore = (event as CustomEvent<{ value?: string | null }>).detail?.value;
-    this.searchTerm.set(valore ?? '');
+    this.searchTerm.set((event.target as HTMLInputElement).value ?? '');
   }
 
-  readonly elementiFiltrati = computed(() => {
-    const perTipo = this.items().filter((i) => i.type === this.filtro());
+  // ------------------------------------------------------------- elenco
 
-    const termine = this.searchTerm().trim().toLowerCase();
-    if (!termine) return perTipo;
+  private readonly righe = computed<RigaCliente[]>(() => {
+    const perCliente = new Map<number, RigaCliente>();
+    for (const i of this.items()) {
+      const riga = perCliente.get(i.clientId) ?? {
+        clientId: i.clientId, nome: i.clientName, username: i.clientUsername,
+        abbonamento: null, scheda: null, eliminazione: null,
+      };
+      if (i.type === 'subscription') riga.abbonamento = i;
+      else riga.scheda = i;
+      perCliente.set(i.clientId, riga);
+    }
+    for (const e of this.eliminazioni()) {
+      const riga = perCliente.get(e.clientId);
+      if (riga) riga.eliminazione = e;
+    }
 
-    return perTipo.filter(
-      (i) =>
-        i.clientName.toLowerCase().includes(termine) ||
-        i.clientUsername.toLowerCase().includes(termine)
+    const urgenza = (r: RigaCliente): number => {
+      if (r.eliminazione) return -100_000 + r.eliminazione.daysLeft;
+      const giorni = [r.abbonamento?.daysLeft, r.scheda?.daysLeft].filter(
+        (g): g is number => g !== null && g !== undefined
+      );
+      return giorni.length > 0 ? Math.min(...giorni) : 100_000;
+    };
+
+    return [...perCliente.values()].sort(
+      (a, b) => urgenza(a) - urgenza(b) || a.nome.localeCompare(b.nome, 'it')
     );
   });
 
-  readonly scaduti = computed(() =>
-    this.elementiFiltrati().filter((i) => i.daysLeft !== null && i.daysLeft < 0)
-  );
-
-  readonly urgenti = computed(() =>
-    this.elementiFiltrati().filter(
-      (i) => i.daysLeft !== null && i.daysLeft >= 0 && i.daysLeft <= GIORNI_URGENZA
-    )
-  );
-
-  readonly inRegola = computed(() =>
-    this.elementiFiltrati().filter((i) => i.daysLeft !== null && i.daysLeft > GIORNI_URGENZA)
-  );
-
-  /**
-   * Clienti senza abbonamento (o senza scheda, sull'altra scheda del
-   * segmento). Vanno in fondo di proposito: non hanno una scadenza, e
-   * mescolarli agli scaduti confonderebbe chi non ha mai sottoscritto
-   * con chi ha lasciato scadere qualcosa.
-   */
-  readonly senzaScadenza = computed(() =>
-    this.elementiFiltrati().filter((i) => i.daysLeft === null)
-  );
-
-  /**
-   * Totale scaduti o urgenti nella categoria, per il badge sul segmento.
-   * Il controllo su null è necessario: senza, `null <= 7` sarebbe vero
-   * e i clienti senza abbonamento gonfierebbero il contatore.
-   */
-  totaleUrgente(tipo: RenewalType): number {
-    return this.items().filter(
-      (i) => i.type === tipo && i.daysLeft !== null && i.daysLeft <= GIORNI_URGENZA
-    ).length;
+  private daRinnovare(r: RigaCliente): boolean {
+    return [r.abbonamento, r.scheda].some(
+      (i) => i?.daysLeft !== null && i?.daysLeft !== undefined && i.daysLeft <= GIORNI_URGENZA
+    );
   }
+
+  readonly contaRinnovi = computed(() => this.righe().filter((r) => this.daRinnovare(r)).length);
+
+  readonly elenco = computed(() => {
+    let righe = this.righe();
+    if (this.filtro() === 'rinnovi') righe = righe.filter((r) => this.daRinnovare(r));
+    if (this.filtro() === 'eliminazione') righe = righe.filter((r) => r.eliminazione !== null);
+
+    const termine = this.searchTerm().trim().toLowerCase();
+    if (!termine) return righe;
+    return righe.filter(
+      (r) => r.nome.toLowerCase().includes(termine) || r.username.toLowerCase().includes(termine)
+    );
+  });
 
   // -------------------------------------------------------- presentazione
 
-  /**
-   * Iniziale singola, coerente con gli avatar già in uso nelle pagine
-   * di profilo (cliente e istruttore): stessa lettera, stesso criterio.
-   */
   iniziale(nome: string): string {
     return (nome.trim()[0] ?? '?').toUpperCase();
   }
 
-  livelloUrgenza(item: RenewalItem): 'scaduto' | 'urgente' | 'in-arrivo' | 'assente' {
-    if (item.daysLeft === null) return 'assente';
-    if (item.daysLeft < 0) return 'scaduto';
-    if (item.daysLeft <= GIORNI_URGENZA) return 'urgente';
-    return 'in-arrivo';
+  /** Testo e colore della pillola di abbonamento o scheda. */
+  pillola(item: RenewalItem | null, tipo: 'subscription' | 'workout'): { testo: string; tono: Tono } {
+    const cosa = tipo === 'subscription' ? 'Abbonamento' : 'Scheda';
+    const g = item?.daysLeft ?? null;
+    if (g === null) {
+      return { testo: tipo === 'subscription' ? 'Nessun abbonamento' : 'Nessuna scheda', tono: '' };
+    }
+    if (g < 0) return { testo: `${cosa} scadut${tipo === 'subscription' ? 'o' : 'a'}`, tono: 'bad' };
+    if (g === 0) return { testo: `${cosa} scade oggi`, tono: 'warn' };
+    return { testo: `${cosa} ${g} gg`, tono: g <= GIORNI_URGENZA ? 'warn' : 'ok' };
   }
 
-  testoScadenza(item: RenewalItem): string {
-    const g = item.daysLeft;
-    // Senza scadenza non c'e' nulla da scrivere nel badge: il
-    // sottotitolo dice gia' "Nessun abbonamento".
-    if (g === null) return '';
-    if (g < 0) return g === -1 ? 'Scaduto ieri' : `Scaduto da ${-g} giorni`;
-    if (g === 0) return 'Scade oggi';
-    if (g === 1) return 'Scade domani';
-    return `Scade fra ${g} giorni`;
+  testoEliminazione(e: DeletionItem): string {
+    if (e.daysLeft <= 0) return 'In eliminazione a breve';
+    return `In eliminazione fra ${e.daysLeft} gg`;
   }
 
-  vaiAlCliente(item: RenewalItem): void {
-    void this.router.navigate(['/istruttore/clienti', item.clientId]);
+  apri(riga: RigaCliente): void {
+    if (this.largo()) {
+      this.selezionato.set(riga.clientId);
+    } else {
+      void this.router.navigate(['/istruttore/clienti', riga.clientId]);
+    }
   }
 }

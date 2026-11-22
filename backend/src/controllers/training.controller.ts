@@ -81,7 +81,21 @@ export async function latestWeights(req: Request, res: Response): Promise<void> 
   res.json({ success: true, weights });
 }
 
+export async function updateWeightLog(req: Request, res: Response): Promise<void> {
+  const log = await weightService.updateWeightLog(
+    requireUser(req),
+    parseId(req.params.id),
+    req.body
+  );
+  res.json({ success: true, message: 'Registrazione aggiornata.', log });
+}
+
 export async function deleteWeightLog(req: Request, res: Response): Promise<void> {
-  await weightService.deleteWeightLog(requireUser(req), parseId(req.params.id));
+  // ?all=true: per una piramidale elimina tutte le serie di quel giorno.
+  await weightService.deleteWeightLog(
+    requireUser(req),
+    parseId(req.params.id),
+    req.query.all === 'true'
+  );
   res.json({ success: true, message: 'Registrazione eliminata.' });
 }

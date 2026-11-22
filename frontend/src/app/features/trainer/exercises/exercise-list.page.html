@@ -1,142 +1,136 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
-    <ion-title>Esercizi</ion-title>
-  </ion-toolbar>
-  <ion-toolbar>
-    <ion-searchbar
-      placeholder="Cerca esercizio"
-      [(ngModel)]="searchTerm"
-      (ionInput)="onSearchChange()"
-      [debounce]="0"
-    ></ion-searchbar>
+    <div class="pbc-head">
+      <div class="pbc-head-text">
+        <h1 class="pbc-h1">Esercizi</h1>
+      </div>
+      <button type="button" class="pbc-btn primary small" (click)="openCreate()">
+        <ion-icon name="add" aria-hidden="true"></ion-icon>
+        Nuovo
+      </button>
+    </div>
+    <label class="cerca">
+      <ion-icon name="search-outline" aria-hidden="true"></ion-icon>
+      <input type="search" placeholder="Cerca un esercizio" aria-label="Cerca un esercizio"
+        [(ngModel)]="searchTerm" (input)="onSearchChange()" />
+    </label>
+    <div class="pbc-chips" role="tablist" aria-label="Gruppi muscolari">
+      <button type="button" class="pbc-chip" [class.on]="filtroGruppo() === null" (click)="filtroGruppo.set(null)">Tutti</button>
+      @for (block of grouped(); track block.group) {
+        <button type="button" class="pbc-chip" [class.on]="filtroGruppo() === block.group" (click)="scegliGruppo(block.group)">
+          {{ block.group | muscleGroup }} · {{ block.items.length }}
+        </button>
+      }
+    </div>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="pbc-con-fab">
+<ion-content>
   <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
-
-  @if (loading()) {
-    <div class="d-flex justify-content-center py-5">
-      <ion-spinner name="crescent"></ion-spinner>
-    </div>
-  } @else if (exercises().length === 0) {
-    <div class="text-center py-5 px-4">
-      <ion-icon name="barbell-outline" class="empty-icon"></ion-icon>
-      <p class="text-muted mt-3 mb-0">Nessun esercizio trovato.</p>
-    </div>
-  } @else {
-    <ion-accordion-group
-      [value]="gruppoAperto()"
-      (ionChange)="onGruppoChange($any($event).detail.value)"
-    >
-      @for (block of grouped(); track block.group) {
-        <ion-accordion [value]="block.group">
-          <ion-item slot="header">
-            <ion-label>
-              <h2>{{ block.group | muscleGroup }}</h2>
-            </ion-label>
-            <ion-badge slot="end" color="medium">{{ block.items.length }}</ion-badge>
-          </ion-item>
-
-          <div slot="content">
-          <ion-list>
-          @for (ex of block.items; track ex.id) {
-            <ion-item>
-              <ion-label>
-                <h2>
-                  {{ ex.name }}
-                  @if (!ex.isActive) {
-                    <ion-badge color="medium" class="ms-2">disattivo</ion-badge>
+  <div class="pbc-page">
+    @if (loading() && exercises().length === 0) {
+      <div class="d-flex justify-content-center py-5">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+    } @else if (sezioni().length === 0) {
+      <div class="pbc-vuoto">
+        <ion-icon name="barbell-outline" aria-hidden="true"></ion-icon>
+        <p class="mt-3 mb-0">Nessun esercizio trovato.</p>
+      </div>
+    } @else {
+      @for (block of sezioni(); track block.group) {
+        <section class="pbc-section" [attr.aria-label]="block.group | muscleGroup">
+          <span class="pbc-eyebrow">{{ block.group | muscleGroup }}</span>
+          <div class="pbc-card elenco">
+            @for (ex of block.items; track ex.id) {
+              <div class="riga">
+                <button type="button" class="riga-testo" (click)="openEdit(ex)">
+                  <span class="nome">
+                    {{ ex.name }}
+                    @if (!ex.isActive) {
+                      <span class="pbc-pill mini">Disattivato</span>
+                    }
+                  </span>
+                  @if (ex.description) {
+                    <span class="pbc-small">{{ ex.description }}</span>
                   }
-                </h2>
-                @if (ex.description) {
-                  <p>{{ ex.description }}</p>
-                }
-                @if (ex.videoUrl) {
-                  <p class="video-hint">
-                    <ion-icon name="videocam-outline"></ion-icon> video disponibile
-                  </p>
-                }
-              </ion-label>
-              <ion-button slot="end" fill="clear" (click)="openEdit(ex)">
-                <ion-icon name="create-outline" slot="icon-only"></ion-icon>
-              </ion-button>
-              <ion-button slot="end" fill="clear" color="danger" (click)="confirmRemove(ex)">
-                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
-              </ion-button>
-            </ion-item>
-          }
-          </ion-list>
+                  @if (ex.videoUrl) {
+                    <span class="video">
+                      <ion-icon name="videocam-outline" aria-hidden="true"></ion-icon> Video disponibile
+                    </span>
+                  }
+                </button>
+                <button type="button" class="pbc-icon-btn muted" (click)="openEdit(ex)" [attr.aria-label]="'Modifica ' + ex.name">
+                  <ion-icon name="create-outline" aria-hidden="true"></ion-icon>
+                </button>
+                <button type="button" class="pbc-icon-btn danger" (click)="confirmRemove(ex)" [attr.aria-label]="'Elimina ' + ex.name">
+                  <ion-icon name="trash-outline" aria-hidden="true"></ion-icon>
+                </button>
+              </div>
+            }
           </div>
-        </ion-accordion>
+        </section>
       }
-    </ion-accordion-group>
-  }
-
-  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
-    <ion-fab-button (click)="openCreate()">
-      <ion-icon name="add"></ion-icon>
-    </ion-fab-button>
-  </ion-fab>
+    }
+  </div>
 
   <ion-modal [isOpen]="modalOpen()" (didDismiss)="modalOpen.set(false)">
     <ng-template>
-      <ion-header>
+      <ion-header class="ion-no-border">
         <ion-toolbar>
-          <ion-title>{{ editingId() ? 'Modifica esercizio' : 'Nuovo esercizio' }}</ion-title>
-          <ion-buttons slot="end">
-            <ion-button (click)="modalOpen.set(false)">Chiudi</ion-button>
-          </ion-buttons>
+          <div class="pbc-head">
+            <div class="pbc-head-text">
+              <span class="pbc-eyebrow">Catalogo della palestra</span>
+              <h1 class="pbc-h1">{{ editingId() ? 'Modifica esercizio' : 'Nuovo esercizio' }}</h1>
+            </div>
+            <button type="button" class="pbc-icon-btn" (click)="modalOpen.set(false)" aria-label="Chiudi">
+              <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+            </button>
+          </div>
         </ion-toolbar>
       </ion-header>
-      <ion-content class="ion-padding">
-        <form [formGroup]="form" (ngSubmit)="save()">
-          <ion-list>
-            <ion-item>
-              <ion-input label="Nome *" labelPlacement="floating"
-                formControlName="name"></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-select label="Gruppo muscolare *" labelPlacement="floating"
-                formControlName="muscleGroup" interface="action-sheet"
-                cancelText="Annulla">
-                @for (g of muscleGroups; track g) {
-                  <ion-select-option [value]="g">{{ groupLabels[g] }}</ion-select-option>
-                }
-              </ion-select>
-            </ion-item>
-            <ion-item>
-              <ion-textarea label="Descrizione" labelPlacement="floating"
-                formControlName="description" [autoGrow]="true" rows="2"></ion-textarea>
-            </ion-item>
-            <ion-item>
-              <ion-input label="Link video (YouTube)" labelPlacement="floating"
-                formControlName="videoUrl" autocapitalize="off"
-                placeholder="https://..."></ion-input>
-            </ion-item>
-            <ion-item>
-              <ion-input label="Link immagine" labelPlacement="floating"
-                formControlName="imageUrl" autocapitalize="off"
-                placeholder="https://..."></ion-input>
-            </ion-item>
-          </ion-list>
-
+      <ion-content>
+        <form id="formEsercizio" class="pbc-page" [formGroup]="form" (ngSubmit)="save()">
+          <label class="pbc-field">
+            <span>Nome *</span>
+            <input class="pbc-input" type="text" formControlName="name" maxlength="80" />
+          </label>
+          <label class="pbc-field">
+            <span>Gruppo muscolare *</span>
+            <select class="pbc-input" formControlName="muscleGroup">
+              @for (g of muscleGroups; track g) {
+                <option [value]="g">{{ groupLabels[g] }}</option>
+              }
+            </select>
+          </label>
+          <label class="pbc-field">
+            <span>Descrizione</span>
+            <textarea class="pbc-input area" rows="3" formControlName="description"
+              placeholder="Esecuzione, note tecniche…"></textarea>
+          </label>
+          <label class="pbc-field">
+            <span>Link video (YouTube)</span>
+            <input class="pbc-input" type="url" formControlName="videoUrl" autocapitalize="off" placeholder="https://…" />
+          </label>
+          <label class="pbc-field">
+            <span>Link immagine</span>
+            <input class="pbc-input" type="url" formControlName="imageUrl" autocapitalize="off" placeholder="https://…" />
+          </label>
           @if (errorMessage()) {
-            <div class="alert alert-danger py-2 px-3 mt-3">{{ errorMessage() }}</div>
+            <div class="alert alert-danger mb-0">{{ errorMessage() }}</div>
           }
-
-          <ion-button expand="block" type="submit" class="mt-3" [disabled]="saving()">
-            @if (saving()) {
-              <ion-spinner name="crescent"></ion-spinner>
-            } @else {
-              Salva
-            }
-          </ion-button>
         </form>
       </ion-content>
+      <ion-footer class="ion-no-border">
+        <div class="pbc-piede">
+          <button type="submit" form="formEsercizio" class="pbc-btn primary block" [disabled]="saving()">
+            {{ saving() ? 'Salvataggio…' : 'Salva' }}
+          </button>
+        </div>
+      </ion-footer>
     </ng-template>
   </ion-modal>
 </ion-content>

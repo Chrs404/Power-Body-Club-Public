@@ -25,8 +25,8 @@
   /* --- Primario: oliva --- */
   --ion-color-primary: #5e6544;
   --ion-color-primary-rgb: 94, 101, 68;
-  --ion-color-primary-contrast: #ffffff;
-  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-contrast: #f6efe2;
+  --ion-color-primary-contrast-rgb: 246, 239, 226;
   --ion-color-primary-shade: #53593c;
   --ion-color-primary-tint: #6e7456;
 
@@ -72,12 +72,14 @@
      quello si fermava a 3.8:1 su bianco, sotto la soglia AA per il testo
      normale. Viene usato per note, sottotitoli e testo secondario,
      che sono proprio le parti piu' piccole. */
-  --ion-color-medium: #766d61;
-  --ion-color-medium-rgb: 118, 109, 97;
+  /* 2.1: grigio-cuoio ricavato dal logo (#7a6248) e scurito dallo script
+     "brand" di tasteskill fino a 5.8:1 sul fondo pergamena. */
+  --ion-color-medium: #6d5942;
+  --ion-color-medium-rgb: 109, 89, 66;
   --ion-color-medium-contrast: #ffffff;
   --ion-color-medium-contrast-rgb: 255, 255, 255;
-  --ion-color-medium-shade: #686055;
-  --ion-color-medium-tint: #847c71;
+  --ion-color-medium-shade: #605039;
+  --ion-color-medium-tint: #7c6a55;
 
   --ion-color-light: #efe8dc;
   --ion-color-light-rgb: 239, 232, 220;
@@ -94,16 +96,16 @@
   --ion-color-dark-tint: #41413a;
 
   /* --- Superfici --- */
-  --ion-background-color: #faf6ee;
-  --ion-background-color-rgb: 250, 246, 238;
+  --ion-background-color: #f5eee1;
+  --ion-background-color-rgb: 245, 238, 225;
   --ion-text-color: #2c2c24;
   --ion-text-color-rgb: 44, 44, 36;
 
-  --ion-item-background: #ffffff;
-  --ion-card-background: #ffffff;
+  --ion-item-background: #fffcf6;
+  --ion-card-background: #fffcf6;
   --ion-toolbar-background: #2c2c24;
   --ion-toolbar-color: #f6efe2;
-  --ion-tab-bar-background: #ffffff;
+  --ion-tab-bar-background: #fffcf6;
 
   /* --- Scala intermedia ---
      Ionic la usa per titoli delle card, note, sottotitoli e segnaposto:
@@ -137,8 +139,11 @@
   --pbc-font-display: 'Barlow Condensed', 'Barlow', sans-serif;
 
   /* --- Forme --- */
-  --pbc-radius: 12px;
-  --pbc-radius-sm: 8px;
+  /* Una sola scala: card 14, controlli 12, pillole tonde, riquadri
+     principali (hero, pannelli scuri) 20. */
+  --pbc-radius-lg: 20px;
+  --pbc-radius: 14px;
+  --pbc-radius-sm: 12px;
 }
 
 /* ---------------------------------------------------------------------------
@@ -159,6 +164,9 @@
 
     --ion-color-primary: #8b9464;
     --ion-color-primary-rgb: 139, 148, 100;
+    /* Testo scuro sull'oliva chiara: 6.4:1 invece di 2.9:1. */
+    --ion-color-primary-contrast: #1a1a16;
+    --ion-color-primary-contrast-rgb: 26, 26, 22;
     --ion-color-primary-shade: #7a8258;
     --ion-color-primary-tint: #97a074;
 
@@ -251,15 +259,35 @@ ion-note[color] {
 
 ion-card {
   border-radius: var(--pbc-radius);
-  box-shadow: 0 1px 3px rgba(44, 44, 36, 0.08);
+  border: 1px solid var(--pbc-line);
+  box-shadow: none;
   margin-inline: 0;
 }
 
+/* ion-button prende lo stesso aspetto di .pbc-btn: un solo stile di
+   pulsante in tutta l'app (regola "one system" di tasteskill). */
 ion-button {
   --border-radius: var(--pbc-radius-sm);
+  --box-shadow: none;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  min-height: 48px;
+  font-size: 16px;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   text-transform: none;
+}
+
+ion-button[fill='outline'] {
+  --border-width: 1.5px;
+  --border-color: var(--pbc-line-strong);
+  --color: var(--pbc-ink);
+  --background-hover: var(--pbc-surface-2);
+  --background-hover-opacity: 1;
+}
+
+ion-button[fill='clear'] {
+  min-height: 44px;
 }
 
 ion-badge {
@@ -293,22 +321,46 @@ ion-item-divider {
 }
 
 ion-tab-bar {
-  border-top: 1px solid var(--ion-color-light-shade);
-  height: 58px;
+  border-top: 1px solid var(--pbc-line);
+  height: 66px;
   padding-bottom: env(safe-area-inset-bottom);
 }
 
 ion-tab-button {
-  --color-selected: var(--ion-color-primary);
+  --color: var(--pbc-ink-2);
+  --color-selected: var(--pbc-olive-dark);
+  --ripple-color: transparent;
+  gap: 2px;
+}
+
+/* Scheda attiva: una pillola tenue dietro l'icona, come indicatore
+   fermo (niente pillole che scivolano). */
+ion-tab-button ion-icon {
+  box-sizing: content-box;
+  width: 24px;
+  height: 24px;
+  padding: 4px 18px;
+  border-radius: 999px;
+  transition: background-color 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+ion-tab-button.tab-selected ion-icon {
+  background: var(--pbc-olive-tint);
 }
 
 ion-tab-button ion-label {
-  font-size: 0.7rem;
-  letter-spacing: 0.02em;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+ion-tab-button.tab-selected ion-label {
+  font-weight: 600;
 }
 
 ion-fab-button {
-  --box-shadow: 0 3px 10px rgba(44, 44, 36, 0.25);
+  --box-shadow: 0 6px 18px rgba(44, 44, 36, 0.22);
+  --border-radius: 18px;
 }
 
 ion-searchbar {
@@ -323,7 +375,48 @@ ion-toolbar ion-searchbar {
 
 /* Bordi delle liste piu' discreti */
 ion-item {
-  --border-color: var(--ion-color-light-shade);
+  --border-color: var(--pbc-line);
+}
+
+/*
+ * Liste Ionic dentro le pagine (profilo, primo accesso, dettagli):
+ * diventano un gruppo-card con lo stesso bordo e raggio delle .pbc-card,
+ * invece di righe bianche a tutta larghezza su fondo pergamena.
+ */
+ion-content ion-list:not(.login-list) {
+  background: transparent;
+  padding: 0;
+}
+
+ion-content ion-list:not(.login-list) > ion-item:first-of-type,
+ion-content ion-list:not(.login-list) > ion-list-header + ion-item {
+  border-top-left-radius: var(--pbc-radius);
+  border-top-right-radius: var(--pbc-radius);
+}
+
+ion-content ion-list:not(.login-list) > ion-item {
+  --background: var(--pbc-surface);
+  --padding-start: 16px;
+  --inner-padding-end: 16px;
+  border-inline: 1px solid var(--pbc-line);
+}
+
+ion-content ion-list:not(.login-list) > ion-item:first-of-type,
+ion-content ion-list:not(.login-list) > ion-list-header + ion-item {
+  border-top: 1px solid var(--pbc-line);
+}
+
+ion-content ion-list:not(.login-list) > ion-item:last-of-type {
+  --border-width: 0;
+  --inner-border-width: 0;
+  border-bottom: 1px solid var(--pbc-line);
+  border-bottom-left-radius: var(--pbc-radius);
+  border-bottom-right-radius: var(--pbc-radius);
+}
+
+ion-list-header {
+  padding-inline-start: 4px;
+  min-height: 36px;
 }
 
 /* ---------------------------------------------------------------------------

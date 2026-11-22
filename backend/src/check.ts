@@ -111,7 +111,7 @@ async function main(): Promise<void> {
   } catch (error) {
     fail(
       'Connessione al database fallita',
-      'verifica che il servizio postgresql-x64-16 sia avviato (services.msc)'
+      'verifica che il database sia avviato ("docker compose up -d db")'
     );
     console.log('\n  Dettaglio:', error instanceof Error ? error.message : error);
   } finally {

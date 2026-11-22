@@ -2,6 +2,7 @@ import app from './app';
 import { env } from './config/env';
 import { prisma } from './prisma/client';
 import { avviaKeepAlive } from './utils/keep-alive';
+import { avviaPulizia } from './services/cleanup.service';
 
 async function bootstrap(): Promise<void> {
   try {
@@ -21,9 +22,14 @@ async function bootstrap(): Promise<void> {
     // Attivo solo se KEEP_ALIVE_URL e' impostata: vedi utils/keep-alive.ts
     const keepAlive = avviaKeepAlive();
 
+    // Eliminazione automatica dei clienti non rinnovati:
+    // vedi services/cleanup.service.ts
+    const pulizia = avviaPulizia();
+
     const shutdown = async (signal: string) => {
       console.log(`\n${signal} ricevuto, chiusura in corso...`);
       if (keepAlive) clearInterval(keepAlive);
+      if (pulizia) clearInterval(pulizia);
       server.close(async () => {
         await prisma.$disconnect();
         process.exit(0);
@@ -39,9 +45,10 @@ async function bootstrap(): Promise<void> {
     console.error(error);
     console.error('');
     console.error('  Controlla, in ordine:');
-    console.error('  1. il servizio PostgreSQL e\' avviato (services.msc -> postgresql-x64-16)');
-    console.error('  2. DATABASE_URL in backend/.env punta alla porta 5432');
-    console.error('  3. utente e password corrispondono a quelli creati con database/setup.sql');
+    console.error('  1. il database e\' avviato ("docker compose up -d db" dalla cartella del progetto)');
+    console.error('  2. DATABASE_URL punta al database giusto (porta 5432 se non l\'hai cambiata)');
+    console.error('  3. utente e password corrispondono a quelli in docker-compose.yml');
+    console.error('  4. le migrazioni sono state applicate ("npx prisma migrate deploy")');
     console.error('');
     await prisma.$disconnect();
     process.exit(1);

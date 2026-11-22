@@ -1,53 +1,61 @@
 <ion-content class="login-content">
-  <div class="login-wrap">
-    <div class="brand">
+  <div class="login">
+    <!-- Pannello del marchio: in alto sul telefono, a sinistra sul computer. -->
+    <section class="login-brand" aria-label="A.S.D. Power Body Club">
       <img src="logo.png" alt="A.S.D. Power Body Club" class="brand-logo" />
       <p class="brand-sub">Bodybuilding &amp; Fitness · Caccamo</p>
-    </div>
+    </section>
 
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form">
-      <ion-list lines="none" class="mb-2">
-        <ion-item class="field">
-          <ion-input
-            label="Username"
-            labelPlacement="floating"
-            formControlName="username"
-            autocomplete="username"
-            autocapitalize="off"
-            spellcheck="false"
-            enterkeyhint="next"
-          ></ion-input>
-        </ion-item>
+    <section class="login-panel">
+      <div class="login-testa">
+        <h1 class="login-titolo">Accedi alla tua scheda</h1>
+        <p class="login-lead">Allenamenti, pesi e orari della palestra in un posto solo.</p>
+      </div>
 
-        <ion-item class="field">
-          <ion-input
-            label="Password"
-            labelPlacement="floating"
-            type="password"
-            formControlName="password"
-            autocomplete="current-password"
-            enterkeyhint="go"
-          ></ion-input>
-        </ion-item>
-      </ion-list>
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" class="login-form">
+        <ion-list lines="none" class="login-list">
+          <ion-item class="field">
+            <ion-input
+              label="Username"
+              labelPlacement="stacked"
+              formControlName="username"
+              autocomplete="username"
+              autocapitalize="off"
+              spellcheck="false"
+              enterkeyhint="next"
+            ></ion-input>
+          </ion-item>
 
-      @if (errorMessage()) {
-        <div class="alert alert-danger py-2 px-3 mb-3" role="alert">
-          {{ errorMessage() }}
-        </div>
-      }
+          <ion-item class="field">
+            <ion-input
+              label="Password"
+              labelPlacement="stacked"
+              type="password"
+              formControlName="password"
+              autocomplete="current-password"
+              enterkeyhint="go"
+            ></ion-input>
+          </ion-item>
+        </ion-list>
 
-      <ion-button expand="block" type="submit" [disabled]="loading()" class="login-btn">
-        @if (loading()) {
-          <ion-spinner name="crescent"></ion-spinner>
-        } @else {
-          Accedi
+        @if (errorMessage()) {
+          <div class="alert alert-danger py-2 px-3 mb-0" role="alert">
+            {{ errorMessage() }}
+          </div>
         }
-      </ion-button>
-    </form>
 
-    <p class="login-hint">
-      Non hai le credenziali? Rivolgiti al tuo istruttore.
-    </p>
+        <button type="submit" class="pbc-btn block login-btn" [disabled]="loading()">
+          @if (loading()) {
+            <ion-spinner name="crescent"></ion-spinner>
+          } @else {
+            Accedi
+          }
+        </button>
+      </form>
+
+      <p class="login-hint">
+        Non hai le credenziali? Rivolgiti al tuo istruttore.
+      </p>
+    </section>
   </div>
 </ion-content>

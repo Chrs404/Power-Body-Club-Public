@@ -1,35 +1,81 @@
-.empty-icon {
-  font-size: 3rem;
-  color: var(--ion-color-medium);
+.notizia {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px;
 }
 
-.news-content {
-  font-size: 0.9rem;
+.titolo {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.immagine {
+  width: 100%;
+  margin: 4px 0;
+  border-radius: 12px;
+}
+
+.testo {
+  font-size: 15px;
+  line-height: 1.45;
   white-space: pre-line;
 }
 
-.news-image {
-  width: 100%;
-  border-radius: 8px;
+.elenco {
+  overflow: hidden;
 }
 
-.slots {
-  text-align: right;
+.giorno {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 16px;
 }
 
-.slot {
-  font-size: 0.85rem;
+.giorno + .giorno {
+  border-top: 1px solid var(--pbc-line);
+}
+
+.giorno.oggi {
+  background: var(--pbc-olive-tint);
+}
+
+.giorno.chiusura {
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+}
+
+.nome {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.fasce {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 15px;
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
-ion-item.today {
-  --background: var(--ion-color-light);
+.chiuso {
+  color: var(--pbc-bad);
+  font-weight: 600;
 }
 
-ion-item.today h2 {
-  font-weight: 700;
-}
-
-ion-list {
-  background: transparent;
+.pbc-pill.mini {
+  min-height: 20px;
+  padding: 0 8px;
+  font-size: 12px;
 }

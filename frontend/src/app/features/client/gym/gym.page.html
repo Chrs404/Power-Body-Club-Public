@@ -1,97 +1,96 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
-    <ion-title>Palestra</ion-title>
-  </ion-toolbar>
-  <ion-toolbar>
-    <ion-segment [value]="tab()" (ionChange)="onTabChange($any($event).detail.value)">
-      <ion-segment-button value="news">
-        <ion-label>Comunicazioni</ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="orari">
-        <ion-label>Orari</ion-label>
-      </ion-segment-button>
-    </ion-segment>
+    <div class="pbc-head">
+      <div class="pbc-head-text">
+        <h1 class="pbc-h1">Palestra</h1>
+      </div>
+    </div>
+    <div class="pbc-segment" role="tablist" aria-label="Sezioni della palestra">
+      <button type="button" role="tab" [class.on]="tab() === 'news'"
+        [attr.aria-selected]="tab() === 'news'" (click)="onTabChange('news')">Comunicazioni</button>
+      <button type="button" role="tab" [class.on]="tab() === 'orari'"
+        [attr.aria-selected]="tab() === 'orari'" (click)="onTabChange('orari')">Orari</button>
+    </div>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
+<ion-content>
   <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
 
-  @if (loading()) {
-    <div class="d-flex justify-content-center py-5">
-      <ion-spinner name="crescent"></ion-spinner>
-    </div>
-  } @else if (errorMessage()) {
-    <div class="alert alert-danger">{{ errorMessage() }}</div>
-  } @else if (tab() === 'news') {
-
-    @if (news().length === 0) {
-      <div class="text-center py-5">
-        <ion-icon name="megaphone-outline" class="empty-icon"></ion-icon>
-        <p class="text-muted mt-3 mb-0">Nessuna comunicazione al momento.</p>
+  <div class="pbc-page">
+    @if (loading()) {
+      <div class="d-flex justify-content-center py-5">
+        <ion-spinner name="crescent"></ion-spinner>
       </div>
-    } @else {
-      @for (n of news(); track n.id) {
-        <ion-card class="mb-3">
-          <ion-card-header>
-            <ion-card-title>{{ n.title }}</ion-card-title>
-            <ion-card-subtitle>
-              {{ n.publishedAt | date: 'dd/MM/yyyy' }}
-            </ion-card-subtitle>
-          </ion-card-header>
-          <ion-card-content>
+    } @else if (errorMessage()) {
+      <div class="alert alert-danger mb-0">{{ errorMessage() }}</div>
+    } @else if (tab() === 'news') {
+
+      @if (news().length === 0) {
+        <div class="pbc-vuoto">
+          <ion-icon name="megaphone-outline" aria-hidden="true"></ion-icon>
+          <p class="mt-3 mb-0">Nessuna comunicazione al momento.</p>
+        </div>
+      } @else {
+        @for (n of news(); track n.id) {
+          <article class="pbc-card notizia">
+            <span class="pbc-eyebrow">{{ n.publishedAt | date: 'd MMMM y' }}</span>
+            <h2 class="titolo">{{ n.title }}</h2>
             @if (n.imageUrl) {
-              <img [src]="n.imageUrl" [alt]="n.title" class="news-image mb-2" />
+              <img [src]="n.imageUrl" [alt]="n.title" class="immagine" loading="lazy" />
             }
-            <p class="news-content mb-0">{{ n.content }}</p>
-          </ion-card-content>
-        </ion-card>
+            <p class="testo mb-0">{{ n.content }}</p>
+          </article>
+        }
       }
-    }
 
-  } @else {
+    } @else {
 
-    <ion-list class="mb-4">
-      @for (day of schedule(); track day.dayOfWeek) {
-        <ion-item [class.today]="isToday(day.dayOfWeek)">
-          <ion-label>
-            <h2>{{ dayLabels[day.dayOfWeek] }}</h2>
-          </ion-label>
-          <div slot="end" class="slots">
-            @if (day.slots.length === 0) {
-              <ion-note color="danger">Chiuso</ion-note>
-            } @else {
-              @for (slot of day.slots; track $index) {
-                <div class="slot">{{ slot.openTime }} - {{ slot.closeTime }}</div>
+      <div class="pbc-card elenco">
+        @for (day of schedule(); track day.dayOfWeek) {
+          <div class="giorno" [class.oggi]="isToday(day.dayOfWeek)">
+            <span class="nome">
+              {{ dayLabels[day.dayOfWeek] }}
+              @if (isToday(day.dayOfWeek)) {
+                <span class="pbc-pill ok mini">Oggi</span>
               }
+            </span>
+            <span class="fasce">
+              @if (day.slots.length === 0) {
+                <span class="chiuso">Chiuso</span>
+              } @else {
+                @for (slot of day.slots; track $index) {
+                  <span>{{ slot.openTime }} – {{ slot.closeTime }}</span>
+                }
+              }
+            </span>
+          </div>
+        }
+      </div>
+
+      <section class="pbc-section" aria-label="Chiusure straordinarie">
+        <span class="pbc-eyebrow">Chiusure straordinarie</span>
+        @if (closures().length === 0) {
+          <p class="pbc-small mb-0">Nessuna chiusura programmata.</p>
+        } @else {
+          <div class="pbc-card elenco">
+            @for (c of closures(); track c.id) {
+              <div class="giorno chiusura">
+                <span class="nome">
+                  {{ c.startDate | date: 'd MMM y' }}
+                  @if (c.startDate !== c.endDate) {
+                    – {{ c.endDate | date: 'd MMM y' }}
+                  }
+                </span>
+                <span class="pbc-small">{{ c.reason }}</span>
+              </div>
             }
           </div>
-        </ion-item>
-      }
-    </ion-list>
-
-    <h3 class="h6 mb-2">Chiusure straordinarie</h3>
-    @if (closures().length === 0) {
-      <p class="text-muted small">Nessuna chiusura programmata.</p>
-    } @else {
-      <ion-list>
-        @for (c of closures(); track c.id) {
-          <ion-item>
-            <ion-label>
-              <h3>
-                {{ c.startDate | date: 'dd/MM/yyyy' }}
-                @if (c.startDate !== c.endDate) {
-                  — {{ c.endDate | date: 'dd/MM/yyyy' }}
-                }
-              </h3>
-              <p>{{ c.reason }}</p>
-            </ion-label>
-          </ion-item>
         }
-      </ion-list>
-    }
+      </section>
 
-  }
+    }
+  </div>
 </ion-content>

@@ -1,119 +1,739 @@
-ion-list {
-  background: transparent;
+/*
+ * Costruttore di schede, nel layout 2.0.
+ *
+ * Telefono: un giorno alla volta (chip), esercizi su righe compatte che
+ * si aprono per la modifica, scelta esercizi in una finestra a tutto
+ * schermo. Computer: tabella da compilare riga per riga e catalogo
+ * sempre aperto a fianco.
+ */
+
+.testa ion-back-button {
+  flex: none;
+  margin-left: -12px;
+  color: var(--pbc-ink);
 }
 
-.day-block {
-  border: 1px solid var(--ion-color-light-shade);
-  border-radius: 10px;
+.testa-azioni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pbc-chip.piu {
+  min-width: 44px;
+  padding: 0 12px;
+  font-size: 20px;
+}
+
+.pagina {
+  padding: 8px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pbc-input.area {
+  min-height: 72px;
+  padding: 12px;
+  resize: vertical;
+  line-height: 1.35;
+}
+
+.pbc-field > span {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.due-colonne {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* ------------------------------------------------- passo 1: da dove parti */
+
+.partenza {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.opzione,
+.nuovo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 6px 14px;
+  border: 1.5px solid var(--pbc-line);
+  border-radius: 14px;
+  background: var(--pbc-surface);
+  color: var(--pbc-ink);
+  font-family: var(--ion-font-family);
+  text-align: left;
+  cursor: pointer;
+}
+
+.opzione.scelta {
+  border-color: var(--pbc-olive);
+  background: var(--pbc-olive-tint);
+}
+
+.radio {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid #a69c8c;
+}
+
+.opzione.scelta .radio {
+  border: 7px solid var(--pbc-olive);
+}
+
+.opzione-testo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.opzione-titolo {
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+/* ---------------------------------------------------------- passo 2: dati */
+
+.riepilogo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dati {
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dati-testa {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pbc-ink-2);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.campi {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.campi .nome-campo,
+.campi .note-campo {
+  grid-column: 1 / -1;
+}
+
+.giorno-nome {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.giorno-nome .pbc-field {
+  flex: 1;
+}
+
+.pbc-icon-btn.alto {
+  width: 48px;
+  height: 48px;
+  font-size: 20px;
+}
+
+.pbc-vuoto.piccolo {
+  padding: 20px 12px;
+  margin: 0;
+  font-size: 15px;
+}
+
+/* ------------------------------------------------------- righe (telefono) */
+
+.righe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.riga {
+  background: var(--pbc-surface);
+  border: 1px solid var(--pbc-line);
+  border-radius: 16px;
   overflow: hidden;
 }
 
-.day-head {
+/* Superset: le righe collegate formano un unico blocco ocra. */
+.riga.ss {
+  background: var(--pbc-ochre-tint);
+  border-color: transparent;
+}
+
+.riga.ss:not(.ss-inizio) {
+  margin-top: -8px;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+.riga.ss:not(.ss-fine) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.sezione {
+  padding: 10px 14px 0;
+}
+
+.riga-testa {
   display: flex;
   align-items: center;
-  background: var(--ion-color-light);
-  padding-left: 0.75rem;
+  gap: 6px;
+  min-height: 58px;
+  padding: 4px 2px 4px 0;
 }
 
-.day-title {
-  font-weight: 600;
-}
-
-.exercise-row {
-  border-top: 1px solid var(--ion-color-light-shade);
-}
-
-.exercise-head {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem 0;
-}
-
-.exercise-name {
-  flex: 1;
-  font-weight: 500;
-  font-size: 0.95rem;
-}
-
-.exercise-position {
-  min-width: 1.4rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--ion-color-medium);
-  text-align: center;
-}
-
-.exercise-head ion-button {
-  --padding-start: 4px;
-  --padding-end: 4px;
-  height: 30px;
-}
-
-/* --- Superset ---------------------------------------------------------- */
-
-/*
- * Le righe collegate sono rientrate e segnate da una barra laterale:
- * il raggruppamento si legge a colpo d'occhio senza contenitori annidati,
- * che su schermo stretto ruberebbero troppo spazio.
- */
-.exercise-row.apre-superset {
-  border-left: 3px solid var(--ion-color-secondary);
-}
-
-.exercise-row.in-superset {
-  border-left: 3px solid var(--ion-color-secondary);
-  border-top: none;
-  background: color-mix(in srgb, var(--ion-color-secondary) 6%, transparent);
-}
-
-.link-spacer {
-  display: inline-block;
+.maniglia {
   width: 34px;
+  flex: none;
+  color: #8d8375;
 }
 
-.superset-nota {
-  font-size: 0.72rem;
-  color: var(--ion-color-medium);
-  margin: 0;
-  padding: 0 0.75rem 0.5rem 3rem;
-}
-
-/* --- Selezione multipla nel selettore esercizi -------------------------- */
-
-/*
- * Pallino numerato invece di una spunta generica: mostra all'istruttore
- * anche in quale ORDINE gli esercizi verranno aggiunti, non solo che
- * sono stati scelti. Vuoto e col solo bordo quando non selezionato,
- * cosi' la fila non si sposta quando lo stato cambia.
- */
-.segno-selezione {
-  width: 1.6rem;
-  height: 1.6rem;
+.sigla {
+  width: 28px;
+  height: 28px;
+  flex: none;
   border-radius: 50%;
-  border: 2px solid var(--ion-color-medium);
+  background: var(--pbc-dark);
+  color: var(--pbc-on-dark);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.78rem;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--ion-color-medium);
-  flex: 0 0 auto;
-  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
 }
 
-.segno-selezione.attivo {
-  background: var(--ion-color-primary);
-  border-color: var(--ion-color-primary);
-  color: #fff;
+.sigla.ochre {
+  background: var(--pbc-ochre);
+  color: #2c2c24;
 }
 
-ion-item.selezionato {
-  --background: color-mix(in srgb, var(--ion-color-primary) 8%, var(--ion-item-background, transparent));
+.riga-testo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-height: 48px;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pbc-ink);
+  font-family: var(--ion-font-family);
+  text-align: left;
+  cursor: pointer;
 }
 
-/* L'intestazione di sezione sta dentro la prima riga: niente rientro a
-   sinistra, cosi' si allinea al bordo come nelle altre pagine. */
-.sezione-in-riga {
-  padding: 0.6rem 0.75rem 0.25rem;
+.nome {
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.riassunto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+  font-size: 13px;
+  color: var(--pbc-ink-2);
+}
+
+.pbc-pill.mini {
+  min-height: 20px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.ss-piede {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 6px 4px 14px;
+  border-top: 1px solid #e5cdae;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pbc-ochre-dark);
+}
+
+.ss-piede .pbc-btn {
+  color: var(--pbc-ochre-dark);
+}
+
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 2px 14px 14px;
+}
+
+.pbc-segment.tipo {
+  margin: 0;
+}
+
+.campi-esercizio {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.campi-esercizio .pbc-field > span {
+  font-size: 12px;
+  color: var(--pbc-ink-2);
+  text-align: center;
+}
+
+.campi-esercizio .pbc-input {
+  min-height: 44px;
+  padding: 0 6px;
+}
+
+.pbc-btn.rimuovi {
+  align-self: flex-start;
+}
+
+/* Piramidale: ripetizioni e peso serie per serie */
+.piramide {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.piramide-riga {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+}
+
+.piramide-riga.intestazione span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pbc-ink-2);
+  text-align: center;
+}
+
+.piramide-numero {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pbc-ink-2);
+}
+
+.piramide-riga .pbc-input {
+  min-height: 42px;
+}
+
+.piramide-piede {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.recupero {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--pbc-ink-2);
+}
+
+.recupero .pbc-input {
+  width: 80px;
+  min-height: 42px;
+}
+
+/* ----------------------------------------------------------- piede fisso */
+
+.piede {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 20px calc(14px + env(safe-area-inset-bottom));
+  background: var(--pbc-surface);
+  border-top: 1px solid var(--pbc-line);
+}
+
+.piede-riga {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.piede .conta {
+  flex: none;
+}
+
+.piede .salva {
+  flex: 1;
+  min-height: 50px;
+}
+
+.avviso {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pbc-warn);
+  text-align: center;
+}
+
+/* -------------------------------------------- scelta esercizi (finestra) */
+
+.cerca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--pbc-surface-2);
+  color: var(--pbc-ink-2);
+  font-size: 20px;
+}
+
+.cerca.modale {
+  margin: 0 20px 10px;
+}
+
+.cerca input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  border: 0;
+  background: transparent;
+  color: var(--pbc-ink);
+  font-family: var(--ion-font-family);
+  font-size: 16px;
+}
+
+.cerca input:focus {
+  outline: none;
+}
+
+.nuovo {
+  border-style: dashed;
+  border-color: #b9ae9a;
+}
+
+.nuovo-icona {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--pbc-surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.scelta-elenco {
+  overflow: hidden;
+}
+
+.scelta-voce {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 58px;
+  padding: 6px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--pbc-ink);
+  font-family: var(--ion-font-family);
+  text-align: left;
+  cursor: pointer;
+}
+
+.scelta-voce + .scelta-voce {
+  border-top: 1px solid var(--pbc-line);
+}
+
+.scelta-voce.on {
+  background: var(--pbc-olive-tint);
+}
+
+.segno {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 2px solid #a69c8c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.segno.on {
+  border: 0;
+  background: var(--pbc-olive);
+  color: #ffffff;
+}
+
+/* ---------------------------------------------------------------- computer */
+
+.pagina.larga {
+  max-width: none !important;
+  padding: 4px 28px 32px;
+  gap: 18px;
+}
+
+.campi-larghi .campi {
+  grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(150px, 1fr)) minmax(220px, 2fr);
+}
+
+.campi-larghi .campi .nome-campo,
+.campi-larghi .campi .note-campo {
+  grid-column: auto;
+}
+
+.colonne {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.colonna-editor {
+  flex: 3 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.giorni-barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.giorni-chip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.giorno-campo {
+  flex: 1 1 220px;
+}
+
+.tabella {
+  overflow: hidden;
+}
+
+.tabella-scorre {
+  overflow-x: auto;
+}
+
+.tgrid {
+  min-width: 720px;
+  display: grid;
+  grid-template-columns: 28px 28px minmax(140px, 1fr) 116px 58px 64px 62px 62px 40px 40px;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+}
+
+.tgrid.intestazione {
+  padding-top: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--pbc-line);
+}
+
+.tgrid.intestazione span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pbc-ink-2);
+}
+
+.c {
+  text-align: center;
+}
+
+.trow {
+  min-width: 720px;
+  border-bottom: 1px solid var(--pbc-line);
+}
+
+.trow.ss {
+  background: var(--pbc-ochre-tint);
+}
+
+.trow.ss:not(.ss-fine) {
+  border-bottom-color: #e5cdae;
+}
+
+.tnome {
+  min-width: 0;
+  font-weight: 600;
+}
+
+.tipo-sel {
+  min-height: 42px;
+  padding: 0 8px;
+  text-align: left;
+  font-weight: 500;
+  font-size: 15px;
+  appearance: auto;
+}
+
+/* Nel blocco ocra del superset i campi tornano bianchi per staccare. */
+.trow.ss .pbc-input.filled {
+  background: var(--pbc-surface);
+}
+
+.pbc-input.num {
+  min-height: 42px;
+  padding: 0 4px;
+}
+
+.trattino {
+  font-size: 14px;
+  color: var(--pbc-ink-2);
+}
+
+.tpiramide {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 0 10px 10px 72px;
+}
+
+.cella-serie {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.serie-n {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pbc-ink-2);
+}
+
+.pbc-input.mini {
+  width: 56px;
+  min-height: 40px;
+  padding: 0 4px;
+  font-size: 15px;
+}
+
+.per {
+  color: var(--pbc-ink-2);
+}
+
+.trow .ss-piede {
+  padding-left: 72px;
+}
+
+/* Catalogo affiancato */
+.catalogo {
+  flex: 0 1 320px;
+  min-width: 260px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - 180px);
+}
+
+.gruppi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pbc-chip.piccolo {
+  min-height: 36px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.catalogo-elenco {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+
+.voce {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 56px;
+  padding: 4px 0;
+}
+
+.voce + .voce {
+  border-top: 1px solid var(--pbc-line);
+}
+
+.voce-testo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.voce-nome {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.voce-nome.spento {
+  color: var(--pbc-ink-2);
+}
+
+.fatto {
+  color: var(--pbc-olive-dark);
+  font-size: 18px;
+  display: flex;
+}
+
+.pbc-icon-btn.piu {
+  background: var(--pbc-surface-2);
+  font-size: 20px;
 }

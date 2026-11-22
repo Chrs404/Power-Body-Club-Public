@@ -1,11 +1,16 @@
-<ion-header>
+<ion-header class="ion-no-border">
   <ion-toolbar>
-    <img src="logo-small.png" alt="" class="toolbar-logo" slot="start" />
-    <ion-title>Power Body Club</ion-title>
+    <div class="pbc-head">
+      <div class="pbc-brand">
+        <img src="logo-small.png" alt="" />
+        <span>Power Body Club</span>
+      </div>
+      <a class="pbc-avatar" routerLink="/cliente/profilo" aria-label="Il tuo profilo">{{ iniziali() }}</a>
+    </div>
   </ion-toolbar>
 </ion-header>
 
-<ion-content class="ion-padding">
+<ion-content>
   <ion-refresher slot="fixed" (ionRefresh)="refresh($event)">
     <ion-refresher-content></ion-refresher-content>
   </ion-refresher>
@@ -15,111 +20,127 @@
       <ion-spinner name="crescent"></ion-spinner>
     </div>
   } @else if (errorMessage()) {
-    <div class="alert alert-danger">{{ errorMessage() }}</div>
+    <div class="alert alert-danger m-3">{{ errorMessage() }}</div>
   } @else if (data(); as d) {
-    <div class="page-intro mb-3">
-      <p class="eyebrow mb-0">Bentornato</p>
-      <h2 class="greeting mb-0">Ciao {{ d.user.firstName }}</h2>
-    </div>
+    <div class="pbc-page">
+      <div class="saluto">
+        <span class="pbc-eyebrow pbc-entra">{{ oggi }}</span>
+        <h1 class="pbc-h1 xl pbc-entra dopo">Ciao{{ nome() ? ' ' + nome() : '' }}</h1>
+      </div>
 
-    <!-- Abbonamento -->
-    <ion-card class="mb-3">
-      <ion-card-content>
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <ion-card-subtitle>Abbonamento</ion-card-subtitle>
-            @if (d.subscription) {
-              <div class="fw-semibold">
-                {{ d.subscription.plan || 'Attivo' }}
-              </div>
-              <ion-note>
-                fino al {{ d.subscription.endDate | date: 'dd/MM/yyyy' }}
-              </ion-note>
-            } @else {
-              <div class="text-muted">Nessun abbonamento registrato</div>
+      <!-- Prossimo allenamento -->
+      <section class="hero" aria-label="Prossimo allenamento">
+        @if (d.activeWorkout && d.nextDay; as g) {
+          <span class="pbc-eyebrow chiaro">
+            {{ g.inProgress ? 'Allenamento in corso' : 'Prossimo allenamento' }}
+          </span>
+          <div class="hero-titolo">
+            <span class="giorno">{{ g.label }}</span>
+            @if (g.muscleGroups.length > 0) {
+              <span class="gruppi">{{ gruppi(g.muscleGroups) }}</span>
             }
           </div>
-          <ion-badge [color]="subscriptionColor(d.subscription?.daysLeft ?? null)">
-            {{ subscriptionText(d.subscription?.daysLeft ?? null) }}
-          </ion-badge>
-        </div>
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Scheda attiva -->
-    <ion-card class="mb-3">
-      <ion-card-header>
-        <ion-card-title>
-          <ion-icon name="barbell-outline"></ion-icon>
-          Scheda attuale
-        </ion-card-title>
-      </ion-card-header>
-      <ion-card-content>
-        @if (d.activeWorkout; as w) {
-          <div class="fw-semibold mb-1">{{ w.name }}</div>
-          <ion-note class="d-block mb-3">
-            {{ w._count.days }} giorni ·
-            dal {{ w.startDate | date: 'dd/MM/yyyy' }}
-            @if (w.endDate) {
-              al {{ w.endDate | date: 'dd/MM/yyyy' }}
-            }
-          </ion-note>
-          <ion-button expand="block" size="small" (click)="openWorkout()">
-            Apri la scheda
-          </ion-button>
-        } @else {
-          <p class="text-muted mb-0">
-            Nessuna scheda assegnata. Chiedi al tuo istruttore.
-          </p>
-        }
-      </ion-card-content>
-    </ion-card>
-
-    <!-- Ultima comunicazione -->
-    @if (d.latestNews; as n) {
-      <ion-card class="mb-3">
-        <ion-card-header>
-          <ion-card-title>
-            <ion-icon name="megaphone-outline"></ion-icon>
-            Ultima comunicazione
-          </ion-card-title>
-          <ion-card-subtitle>
-            {{ n.publishedAt | date: 'dd/MM/yyyy' }}
-          </ion-card-subtitle>
-        </ion-card-header>
-        <ion-card-content>
-          <div class="fw-semibold mb-1">{{ n.title }}</div>
-          <p class="news-preview mb-2">{{ n.content }}</p>
-          <ion-button fill="clear" size="small" (click)="openGym()">
-            Tutte le comunicazioni
-          </ion-button>
-        </ion-card-content>
-      </ion-card>
-    }
-
-    <!-- Chiusure -->
-    @if (d.upcomingClosures.length > 0) {
-      <ion-card class="mb-3">
-        <ion-card-header>
-          <ion-card-title>
-            <ion-icon name="alert-circle-outline"></ion-icon>
-            Prossime chiusure
-          </ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          @for (c of d.upcomingClosures; track c.id) {
-            <div class="closure-row">
-              <div class="fw-semibold">
-                {{ c.startDate | date: 'dd/MM' }}
-                @if (c.startDate !== c.endDate) {
-                  — {{ c.endDate | date: 'dd/MM' }}
-                }
+          @if (g.inProgress && g.blocksTotal > 0) {
+            <div class="avanzamento">
+              <div class="avanzamento-testo">
+                <span>{{ g.blocksDone }} di {{ g.blocksTotal }} completati</span>
+                <span class="avanzamento-scheda">{{ d.activeWorkout.name }}</span>
               </div>
-              <ion-note>{{ c.reason }}</ion-note>
+              <div
+                class="barra"
+                role="progressbar"
+                [attr.aria-valuenow]="g.blocksDone"
+                aria-valuemin="0"
+                [attr.aria-valuemax]="g.blocksTotal"
+                [attr.aria-label]="'Allenamento: ' + g.blocksDone + ' di ' + g.blocksTotal + ' completati'"
+              >
+                <span class="barra-piena" [style.width.%]="(g.blocksDone / g.blocksTotal) * 100"></span>
+              </div>
+            </div>
+          } @else {
+            <span class="hero-nota">
+              {{ g.exerciseCount }} {{ g.exerciseCount === 1 ? 'esercizio' : 'esercizi' }}
+              · scheda {{ d.activeWorkout.name }}
+            </span>
+          }
+          <button type="button" class="pbc-btn inverse block grande" (click)="iniziaAllenamento()">
+            <ion-icon name="barbell-outline" aria-hidden="true"></ion-icon>
+            {{ g.inProgress ? 'Riprendi allenamento' : 'Inizia allenamento' }}
+          </button>
+        } @else {
+          <span class="pbc-eyebrow chiaro">Prossimo allenamento</span>
+          <span class="giorno">Nessuna scheda</span>
+          <span class="hero-nota">Chiedi al tuo istruttore di assegnartene una.</span>
+        }
+      </section>
+
+      <!-- Abbonamento e scheda -->
+      <div class="stati">
+        @let giorniAbbonamento = d.subscription?.daysLeft ?? null;
+        <div class="pbc-card stato">
+          <span class="pbc-eyebrow">Abbonamento</span>
+          @if (d.subscription; as s) {
+            <span class="valore">{{ s.plan || 'Abbonamento' }}</span>
+            <span class="pbc-small">fino al {{ s.endDate | date: 'dd/MM/yyyy' }}</span>
+          } @else {
+            <span class="valore">Nessuno</span>
+            <span class="pbc-small">Chiedi in palestra</span>
+          }
+          <span class="pbc-pill" [class]="tono(giorniAbbonamento)">{{ scadenza(giorniAbbonamento) }}</span>
+        </div>
+
+        @let giorniScheda = giorniA(d.activeWorkout?.endDate);
+        <div class="pbc-card stato">
+          <span class="pbc-eyebrow">Scheda</span>
+          @if (d.activeWorkout; as w) {
+            <span class="valore">{{ w.name }}</span>
+            <span class="pbc-small">
+              @if (w.endDate) {
+                fino al {{ w.endDate | date: 'dd/MM/yyyy' }}
+              } @else {
+                {{ w._count.days }} {{ w._count.days === 1 ? 'giorno' : 'giorni' }}
+              }
+            </span>
+            @if (w.endDate) {
+              <span class="pbc-pill" [class]="tono(giorniScheda)">{{ scadenza(giorniScheda, true) }}</span>
+            }
+          } @else {
+            <span class="valore">Nessuna</span>
+            <span class="pbc-small">Non ancora assegnata</span>
+          }
+        </div>
+      </div>
+
+      <!-- Dalla palestra -->
+      @if (d.latestNews || d.upcomingClosures.length > 0) {
+        <section class="pbc-section" aria-label="Dalla palestra">
+          <span class="pbc-eyebrow">Dalla palestra</span>
+
+          @for (c of d.upcomingClosures; track c.id) {
+            <div class="pbc-card avviso">
+              <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+              <div>
+                <div class="avviso-titolo">
+                  Chiusura {{ c.startDate | date: 'dd/MM' }}
+                  @if (c.startDate !== c.endDate) {
+                    – {{ c.endDate | date: 'dd/MM' }}
+                  }
+                </div>
+                <div class="pbc-muted">{{ c.reason }}</div>
+              </div>
             </div>
           }
-        </ion-card-content>
-      </ion-card>
-    }
+
+          @if (d.latestNews; as n) {
+            <div class="pbc-card notizia">
+              <span class="pbc-small">{{ n.publishedAt | date: 'dd/MM/yyyy' }}</span>
+              <div class="avviso-titolo">{{ n.title }}</div>
+              <p class="anteprima">{{ n.content }}</p>
+              <a class="pbc-link" routerLink="/cliente/palestra">Tutte le comunicazioni</a>
+            </div>
+          }
+        </section>
+      }
+    </div>
   }
 </ion-content>

@@ -1,0 +1,11 @@
+# Mai dentro l'immagine: le dipendenze si installano al suo interno,
+# e i segreti arrivano dalle variabili d'ambiente.
+node_modules
+dist
+dist-seed
+.env
+.env.*
+npm-debug.log*
+*.log
+Dockerfile
+.dockerignore

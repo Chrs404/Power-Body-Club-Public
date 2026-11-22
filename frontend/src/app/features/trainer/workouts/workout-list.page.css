@@ -1,8 +1,131 @@
-.empty-icon {
-  font-size: 3rem;
-  color: var(--ion-color-medium);
+.testa ion-back-button {
+  flex: none;
+  margin-left: -12px;
+  color: var(--pbc-ink);
 }
 
-ion-list {
+.elenco {
+  overflow: hidden;
+}
+
+.riga {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 8px;
+  padding: 8px 8px 8px 16px;
+}
+
+.riga.attiva {
+  background: var(--pbc-olive-tint);
+}
+
+.riga + .riga,
+.anteprima + .anteprima,
+.scelta + .scelta {
+  border-top: 1px solid var(--pbc-line);
+}
+
+.riga-testo {
+  flex: 1 1 200px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-height: 48px;
+  justify-content: center;
+  padding: 0;
+  border: 0;
   background: transparent;
+  color: var(--pbc-ink);
+  font-family: var(--ion-font-family);
+  text-align: left;
+}
+
+button.riga-testo {
+  cursor: pointer;
+}
+
+.nome {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.nome.grande {
+  font-size: 19px;
+}
+
+.pbc-pill.mini {
+  min-height: 20px;
+  padding: 0 8px;
+  font-size: 12px;
+}
+
+.azioni {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+
+.azioni ion-spinner {
+  width: 18px;
+  height: 18px;
+}
+
+/* Finestra delle schede rapide */
+.scelta,
+.anteprima-testa {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 60px;
+  padding: 6px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--pbc-ink-2);
+  font-family: var(--ion-font-family);
+  font-size: 18px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.esercizi {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px 12px;
+}
+
+.esercizi li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}
+
+.esercizi ion-icon {
+  color: var(--pbc-ochre-dark);
+}
+
+.esercizio {
+  flex: 1;
+  font-size: 15px;
+}
+
+.due-colonne {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.piede-due {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }

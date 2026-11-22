@@ -3,17 +3,15 @@ import { DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import {
-  IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton,
-  IonButton, IonList, IonItem, IonLabel, IonSpinner, IonIcon, IonBadge,
-  IonFab, IonFabButton, IonNote, IonModal, IonInput,
-  IonAccordion, IonAccordionGroup,
+  IonContent, IonHeader, IonToolbar, IonBackButton, IonSpinner, IonIcon, IonModal, IonFooter,
   AlertController, ToastController,
   IonRefresher, IonRefresherContent,
 } from '@ionic/angular/standalone';
 import { addIcons } from 'ionicons';
 import {
   add, createOutline, trashOutline, documentTextOutline, layersOutline,
-  downloadOutline, linkOutline, checkmarkCircleOutline,
+  downloadOutline, linkOutline, checkmarkCircleOutline, closeOutline, chevronForwardOutline,
+  chevronDownOutline,
 } from 'ionicons/icons';
 
 import { WorkoutService } from '../../../core/services/workout.service';
@@ -24,10 +22,7 @@ import { Workout, WorkoutSummary, WorkoutTemplate } from '../../../core/models/w
   selector: 'app-workout-list',
   imports: [
     DatePipe, FormsModule,
-    IonContent, IonHeader, IonTitle, IonToolbar, IonButtons, IonBackButton,
-    IonButton, IonList, IonItem, IonLabel, IonSpinner, IonIcon, IonBadge,
-    IonFab, IonFabButton, IonNote, IonModal, IonInput,
-    IonAccordion, IonAccordionGroup,
+    IonContent, IonHeader, IonToolbar, IonBackButton, IonSpinner, IonIcon, IonModal, IonFooter,
     IonRefresher, IonRefresherContent,
   ],
   templateUrl: './workout-list.page.html',
@@ -59,6 +54,9 @@ export class WorkoutListPage implements OnInit {
   private readonly modelliModal = viewChild.required<IonModal>('modelliModal');
   readonly assegnando = signal(false);
   readonly modelloScelto = signal<WorkoutTemplate | null>(null);
+
+  /** Giorno aperto nell'anteprima della scheda rapida scelta. */
+  readonly giornoAperto = signal<number | null>(null);
   nomeAssegnato = '';
   inizioAssegnato = '';
   fineAssegnato = '';
@@ -67,6 +65,7 @@ export class WorkoutListPage implements OnInit {
     addIcons({
       add, createOutline, trashOutline, documentTextOutline, layersOutline,
       downloadOutline, linkOutline, checkmarkCircleOutline,
+      closeOutline, chevronForwardOutline, chevronDownOutline,
     });
   }
 
