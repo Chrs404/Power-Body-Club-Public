@@ -26,3 +26,7 @@ Thumbs.db
 
 # Cartelle di Claude (skill e impostazioni locali), mai nel repository
 .claude/
+
+# Chiavi di firma dell'APK: mai nel repository
+*.jks
+*.keystore

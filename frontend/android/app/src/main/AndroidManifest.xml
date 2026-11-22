@@ -39,4 +39,12 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- Timer del recupero: vibrazione a fine pausa e notifica puntuale
+         anche con l'app in background. Da Android 14 la permission
+         SCHEDULE_EXACT_ALARM (dichiarata dal plugin) e' negata di base:
+         USE_EXACT_ALARM viene concessa all'installazione, senza chiedere
+         nulla all'utente, cosi' la notifica non arriva in ritardo. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 </manifest>
